@@ -1,4 +1,8 @@
 use anchor_lang::prelude::*;
 
+pub struct Seeds;
+
 #[constant]
-pub const SEED: &str = "anchor";
+impl Seeds {
+    pub const DISTRIBUTION_TREE: &'static [u8] = b"DISTRIBUTION_TREE";
+}
