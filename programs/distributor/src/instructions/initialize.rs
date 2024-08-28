@@ -1,7 +1,8 @@
 use std::str::FromStr;
 
 use crate::{
-    error::DistributionError, state::DistributionTree, DISTRIBUTION_TREE, PYUSD_MINT_LOCAL,
+    error::DistributionError, state::DistributionTree, DISTRIBUTION_TREE, 
+    constants::PYUSD_MINT
 };
 use anchor_lang::prelude::*;
 use anchor_spl::{
@@ -30,7 +31,7 @@ pub struct Initialize<'info> {
 
     /// Mint account (PYUSD)
     #[account(
-        address = Pubkey::from_str(&PYUSD_MINT_LOCAL).unwrap(),
+        address = Pubkey::from_str(&PYUSD_MINT).unwrap(),
     )]
     pub mint: InterfaceAccount<'info, Mint>,
 
