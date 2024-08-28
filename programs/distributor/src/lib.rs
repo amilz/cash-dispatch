@@ -16,8 +16,9 @@ declare_id!("4cBCwB9oVf32w8wBsUH4FxGcfQfgPWKaSnJfLpFLVvvv");
 pub mod distributor {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>, capacity: u32) -> Result<()> {
-        instructions::initialize::handler(ctx, capacity)
+    #[access_control(instructions::initialize::validate(&ctx, &params))]
+    pub fn initialize(ctx: Context<Initialize>, params: InitializeParams) -> Result<()> {
+        instructions::initialize::handler(ctx, params)
     }
 
     /* TODO: Add remaining instructions
