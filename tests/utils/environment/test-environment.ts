@@ -1,20 +1,29 @@
 import * as anchor from '@coral-xyz/anchor';
 import { Distributor } from "../../../target/types/distributor";
+import { PaymentTree, MerkleDistributorInfo } from '../merkle-tree';
+import { PublicKey, Keypair } from '@solana/web3.js';
 
 export class TestEnvironment {
-    provider: anchor.AnchorProvider;
-    program: anchor.Program<Distributor>;
+    provider!: anchor.AnchorProvider;
+    program!: anchor.Program<Distributor>;
 
-    pyUsdMint: anchor.web3.PublicKey;
-    pyUsdMintAuthorityKeypair: anchor.web3.Keypair;
+    pyUsdMint!: PublicKey;
+    pyUsdMintAuthorityKeypair: Keypair;
 
-    authority1: anchor.web3.Keypair;
-    tokenSource1: anchor.web3.PublicKey;
+    authority: Keypair;
+    tokenSource!: PublicKey;
 
-    // TODO: Add Merkle Stuff
+    balanceTree!: PaymentTree;
+    merkleRoot!: Buffer;
+    merkleDistributorInfo!: MerkleDistributorInfo;
 
     constructor() {
-        this.authority1 = anchor.web3.Keypair.generate();
-        this.pyUsdMintAuthorityKeypair = anchor.web3.Keypair.generate();
+        this.authority = Keypair.generate();
+        this.pyUsdMintAuthorityKeypair = Keypair.generate();
+    }
+
+    async cleanup(): Promise<void> {
+        // Implement cleanup logic here
+        // For example, close token accounts, etc.
     }
 }
