@@ -6,6 +6,7 @@ import { airdropToMultiple, makeTokenMint } from '../solana-helpers';
 import { BASE_PAYMENT_AMOUNT, INITIAL_SOL_BALANCE, INITIAL_TOKEN_BALANCE, NUM_SAMPLE_BALANCES, PY_USD_SECRET } from '../constants';
 import { createAssociatedTokenAccountIdempotent, mintTo, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import { PaymentTree, PaymentsImport, parsePaymentMap } from '../merkle-tree';
+import { getDistributionTreePDA, getTokenVaultAddress } from '../pdas';
 
 export async function initEnviroment(testEnv: TestEnvironment, numPayments: number = NUM_SAMPLE_BALANCES) {
     try {
@@ -63,6 +64,14 @@ export async function initEnviroment(testEnv: TestEnvironment, numPayments: numb
                 amount: new anchor.BN(earnings),
             }))
         );
+        testEnv.distributionTreePda = getDistributionTreePDA({
+            distributorProgram: testEnv.program.programId
+        });
+        testEnv.tokenVault = getTokenVaultAddress({
+            mint: testEnv.pyUsdMint,
+            distributionTreePDA: testEnv.distributionTreePda
+        });
+
     } catch (error) {
         console.error('Failed to initialize test environment', error);
         throw error;

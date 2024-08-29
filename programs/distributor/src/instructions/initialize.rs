@@ -39,7 +39,8 @@ pub struct Initialize<'info> {
     #[account(
         mut,
         associated_token::mint = mint,
-        associated_token::authority=authority,
+        associated_token::authority =authority,
+        associated_token::token_program = token_program
     )]
     pub token_source: InterfaceAccount<'info, TokenAccount>,
 
@@ -47,7 +48,8 @@ pub struct Initialize<'info> {
     #[account(
         init,
         associated_token::mint = mint,
-        associated_token::authority=distribution_tree,
+        associated_token::authority = distribution_tree,
+        associated_token::token_program = token_program,
         payer = authority,
     )]
     pub token_vault: InterfaceAccount<'info, TokenAccount>,
@@ -75,9 +77,9 @@ impl<'info> Initialize<'info> {
                 self.token_program.to_account_info(),
                 TransferChecked {
                     from: self.token_source.to_account_info(),
+                    mint: self.mint.to_account_info(),
                     to: self.token_vault.to_account_info(),
                     authority: self.authority.to_account_info(),
-                    mint: self.mint.to_account_info(),
                 },
             ),
             amount,

@@ -3,29 +3,17 @@ import {
     Connection,
     Keypair,
     PublicKey,
-    LAMPORTS_PER_SOL,
     TransactionInstruction,
     AddressLookupTableAccount,
     ComputeBudgetProgram,
     VersionedTransaction,
     TransactionMessage,
-    RpcResponseAndContext,
-    SignatureResult,
-    SimulatedTransactionResponse,
     SystemProgram,
-    Signer,
     Commitment,
     Transaction,
     sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import {
-    TOKEN_PROGRAM_ID,
-    MINT_SIZE,
-    createAssociatedTokenAccountIdempotentInstruction,
-    createInitializeMint2Instruction,
-    createMintToInstruction,
-    getAssociatedTokenAddressSync,
-    getMinimumBalanceForRentExemptMint,
     TOKEN_2022_PROGRAM_ID,
     createInitializeMetadataPointerInstruction,
     createInitializeMintInstruction,
@@ -263,4 +251,11 @@ export async function airdropToMultiple(
 
 function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export function logAccountKeys(
+    accounts: Record<string, PublicKey>
+): void {
+    console.log(Object.entries(accounts).map(([key, value]) => `${key}: ${value.toBase58()}`).join('\n'));
+    return;
 }

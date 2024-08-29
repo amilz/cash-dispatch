@@ -16,6 +16,8 @@ export class TestEnvironment {
     balanceTree!: PaymentTree;
     merkleRoot!: Buffer;
     merkleDistributorInfo!: MerkleDistributorInfo;
+    distributionTreePda!: PublicKey;
+    tokenVault!: PublicKey;
 
     constructor() {
         this.authority = Keypair.generate();

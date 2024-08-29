@@ -3,10 +3,10 @@ import { BN } from "@coral-xyz/anchor";
 import { PaymentTree } from "./PaymentTree";
 import { MerkleDistributorInfo, PaymentsImport } from "./types";
 
-export function parsePaymentMap(payments: PaymentsImport): MerkleDistributorInfo {
+export function parsePaymentMap(paymentsImport: PaymentsImport): MerkleDistributorInfo {
     const dataByAddress = new Map<string, { amount: BN }>();
 
-    for (const { address, earnings } of payments) {
+    for (const { address, earnings } of paymentsImport) {
         if (dataByAddress.has(address)) {
             throw new Error(`Duplicate address: ${address}`);
         }
@@ -26,11 +26,11 @@ export function parsePaymentMap(payments: PaymentsImport): MerkleDistributorInfo
         }))
     );
 
-    const claims: MerkleDistributorInfo["claims"] = {};
+    const payments: MerkleDistributorInfo["payments"] = {};
     for (let i = 0; i < sortedAddresses.length; i++) {
         const address = sortedAddresses[i];
         const { amount } = dataByAddress.get(address)!;
-        claims[address] = {
+        payments[address] = {
             index: i,
             amount: amount,
             proof: tree.getProof(i, new PublicKey(address), amount),
@@ -45,6 +45,6 @@ export function parsePaymentMap(payments: PaymentsImport): MerkleDistributorInfo
     return {
         merkleRoot: tree.getRoot(),
         tokenTotal: tokenTotal.toString(),
-        claims,
+        payments,
     };
 }

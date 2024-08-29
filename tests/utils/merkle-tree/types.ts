@@ -3,7 +3,7 @@ import { BN, web3 } from "@coral-xyz/anchor";
 export interface MerkleDistributorInfo {
     merkleRoot: Buffer;
     tokenTotal: string;
-    claims: {
+    payments: {
         [account: string]: {
             index: number;
             amount: BN;
