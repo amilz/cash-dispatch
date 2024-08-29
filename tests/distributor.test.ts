@@ -10,6 +10,6 @@ describe("The Distributor Program", () => {
   });
 
   describe('Initialize Distributor Tests', async () => {
-    initializeTests(testEnv);
+    await initializeTests(testEnv);
   });
 });

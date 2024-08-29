@@ -20,7 +20,8 @@ export async function initEnviroment(testEnv: TestEnvironment, numPayments: numb
             [testEnv.authority.publicKey, testEnv.pyUsdMintAuthorityKeypair.publicKey],
             provider.connection,
             INITIAL_SOL_BALANCE * web3.LAMPORTS_PER_SOL
-        )
+        );
+        
         testEnv.pyUsdMint = await makeTokenMint({
             connection: provider.connection,
             mintAuthority: testEnv.pyUsdMintAuthorityKeypair,
@@ -64,13 +65,24 @@ export async function initEnviroment(testEnv: TestEnvironment, numPayments: numb
                 amount: new anchor.BN(earnings),
             }))
         );
+
+
+        const currentDate = new Date();
+        const startTimestamp = Math.floor(currentDate.getTime() / 1000);
+        const datePart = currentDate.toISOString().split('T')[0];
+        const randomPart = Math.random().toString(36).substring(2, 6); // 4 random alphanumeric characters
+        const distributionId = `${datePart}-${randomPart}`.trim();
+        testEnv.distributionUniqueId = distributionId;
+        testEnv.distributionStartTs = startTimestamp;
         testEnv.distributionTreePda = getDistributionTreePDA({
-            distributorProgram: testEnv.program.programId
+            distributorProgram: testEnv.program.programId,
+            batchId: distributionId
         });
         testEnv.tokenVault = getTokenVaultAddress({
             mint: testEnv.pyUsdMint,
             distributionTreePDA: testEnv.distributionTreePda
         });
+
 
     } catch (error) {
         console.error('Failed to initialize test environment', error);

@@ -11,6 +11,7 @@ export interface Initialize {
     tokenSource: PublicKey,
     tokenVault: PublicKey,
     merkleRoot: Buffer,
+    batchId: string,
     totalNumberRecipients: number,
     transferToVaultAmount: number,
     mintDecimals: number,
@@ -24,6 +25,7 @@ export async function initialize(
 ) {
     const initializeParams = {
         merkleRoot: Array.from(initialize.merkleRoot),
+        batchId: initialize.batchId,
         totalNumberRecipients: new BN(initialize.totalNumberRecipients),
         transferToVaultAmount: new BN(initialize.transferToVaultAmount),
         mintDecimals: initialize.mintDecimals,

@@ -6,12 +6,17 @@ const SEEDS: Record<string, string> = {
 };
 
 export function getDistributionTreePDA({
-    distributorProgram
+    distributorProgram,
+    batchId
 }: {
-    distributorProgram: PublicKey
+    distributorProgram: PublicKey,
+    batchId: string
 }): PublicKey {
     const [distributionTreePDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from(SEEDS.DISTRIBUTOR)],
+        [
+            Buffer.from(SEEDS.DISTRIBUTOR),
+            Buffer.from(batchId)
+        ],
         distributorProgram
     );
     return distributionTreePDA;

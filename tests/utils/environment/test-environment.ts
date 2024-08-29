@@ -18,6 +18,8 @@ export class TestEnvironment {
     merkleDistributorInfo!: MerkleDistributorInfo;
     distributionTreePda!: PublicKey;
     tokenVault!: PublicKey;
+    distributionStartTs!: number;
+    distributionUniqueId!: string;
 
     constructor() {
         this.authority = Keypair.generate();

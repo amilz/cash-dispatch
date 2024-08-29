@@ -21,10 +21,11 @@ export async function initializeTests(testEnv: TestEnvironment) {
             tokenSource: testEnv.tokenSource,
             tokenVault: testEnv.tokenVault,
             merkleRoot: testEnv.balanceTree.getRoot(),
+            batchId: testEnv.distributionUniqueId,
             totalNumberRecipients: Object.keys(testEnv.merkleDistributorInfo.payments).length,
             transferToVaultAmount: Object.values(testEnv.merkleDistributorInfo.payments).reduce((sum, payment) => sum + payment.amount.toNumber(), 0),
             mintDecimals: 6,
-            startTs: Math.floor(Date.now() / 1000) + 86400, // current timestamp + 1 day
+            startTs: testEnv.distributionStartTs,
             endTs: null,
         };
         await initialize(testEnv, initializeParams);

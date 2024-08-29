@@ -11,6 +11,7 @@ use anchor_spl::{
 };
 
 #[derive(Accounts)]
+#[instruction(params: InitializeParams)]
 pub struct Initialize<'info> {
     /// Signer and Authority of the DistributionTree
     #[account(mut)]
@@ -23,6 +24,7 @@ pub struct Initialize<'info> {
         space = 8 + DistributionTree::INIT_SPACE,
         seeds = [
             DISTRIBUTION_TREE.as_ref(),
+            params.batch_id.as_bytes(),
             // TODO: Add unique identifier for the tree
         ],
         bump
@@ -63,6 +65,7 @@ pub struct Initialize<'info> {
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct InitializeParams {
     pub merkle_root: [u8; 32],
+    pub batch_id: String,
     pub total_number_recipients: u64,
     pub transfer_to_vault_amount: u64,
     pub mint_decimals: u8,
@@ -136,6 +139,7 @@ pub fn handler(ctx: Context<Initialize>, params: InitializeParams) -> Result<()>
     distribution_tree.initialize(
         bump,
         *authority,
+        params.batch_id,
         params.merkle_root,
         ctx.accounts.mint.key(),
         ctx.accounts.token_vault.key(),
