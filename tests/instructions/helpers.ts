@@ -38,3 +38,15 @@ export async function assertInstructionWillFail<T>({
     }
 }
 
+const processingIndicators = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
+export function printDistributionProgress(totalDistributions: number, currentIndex: number) {
+    const progress = Math.round(((currentIndex + 1) / totalDistributions) * 100);
+    process.stdout.write(`\r      ${processingIndicators[
+        currentIndex % processingIndicators.length
+    ]} Distributing payments: ${progress}% complete`);
+}
+
+export function clearDistributionProgress() {
+    process.stdout.write('\r');
+}

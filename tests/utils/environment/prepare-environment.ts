@@ -20,7 +20,6 @@ export async function initEnviroment({
     numPayments = NUM_SAMPLE_BALANCES,
     skipInitMint = false,
     startOffset = -1000
-
 }: InitEnvironmentParams) {
     try {
         const provider = anchor.AnchorProvider.env();
@@ -30,7 +29,7 @@ export async function initEnviroment({
         testEnv.program = anchor.workspace.Distributor as anchor.Program<Distributor>;
 
         await airdropToMultiple(
-            [testEnv.authority.publicKey, testEnv.pyUsdMintAuthorityKeypair.publicKey],
+            [testEnv.authority.publicKey, testEnv.pyUsdMintAuthorityKeypair.publicKey, testEnv.wrongAuthority.publicKey],
             provider.connection,
             INITIAL_SOL_BALANCE * web3.LAMPORTS_PER_SOL
         );

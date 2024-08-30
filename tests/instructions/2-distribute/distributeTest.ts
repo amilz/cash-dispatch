@@ -4,17 +4,18 @@ import { Distribute, distribute } from "./distribute";
 import { BN, web3 } from "@coral-xyz/anchor";
 import { getAccountByIndex } from "../../utils/merkle-tree";
 import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
-import { assertInstructionWillFail } from "../helpers";
+import { assertInstructionWillFail, clearDistributionProgress, printDistributionProgress } from "../helpers";
 
 
 export async function distributeTests(testEnv: TestEnvironment) {
     let index: number;
     let correctParams: Distribute;
+    let totalNumberRecipients: number;
 
     before('Set Distribute Params', async () => {
         const treeInfo = await testEnv.program.account.distributionTree.fetch(testEnv.distributionTreePda);
         index = treeInfo.numberDistributed.toNumber();
-
+        totalNumberRecipients = treeInfo.totalNumberRecipients.toNumber();
 
         const paymentInfo = getAccountByIndex(testEnv.merkleDistributorInfo, index);
         if (!paymentInfo) {
@@ -40,7 +41,6 @@ export async function distributeTests(testEnv: TestEnvironment) {
             numberDistributedBefore: index
         };
     });
-
     it('Cannot distribute with the wrong amount', async () => {
         const incorrectParams: Distribute = {
             ...correctParams,
@@ -52,10 +52,81 @@ export async function distributeTests(testEnv: TestEnvironment) {
             executeInstruction: distribute,
             expectedAnchorError: "InvalidProof"
         });
+    });
+    it('Cannot distribute to the wrong recipient', async () => {
+        const wrongRecipient = new web3.Keypair().publicKey;
+        const wrongDestination = getAssociatedTokenAddressSync(
+            testEnv.pyUsdMint,
+            wrongRecipient,
+            false,
+            TOKEN_2022_PROGRAM_ID
+        );
+        const incorrectParams: Distribute = {
+            ...correctParams,
+            recipient: wrongRecipient,
+            recipientTokenAccount: wrongDestination,
+        };
+        await assertInstructionWillFail({
+            testEnv,
+            params: incorrectParams,
+            executeInstruction: distribute,
+            expectedAnchorError: "InvalidProof"
+        });
+    });
+    it('Cannot distribute to another recipient in the same batch', async () => {
+        const wrongIndex = index + 1;
+        const wrongPaymentInfo = getAccountByIndex(testEnv.merkleDistributorInfo, wrongIndex);
+        if (!wrongPaymentInfo) {
+            throw new Error('No recipient found');
+        }
+        const wrongRecipient = new web3.PublicKey(wrongPaymentInfo.account);
+        const wrongDestination = getAssociatedTokenAddressSync(
+            testEnv.pyUsdMint,
+            wrongRecipient,
+            false,
+            TOKEN_2022_PROGRAM_ID
+        );
 
+        const distributeParams: Distribute = {
+            ...correctParams,
+            recipient: wrongRecipient,
+            amount: wrongPaymentInfo.amount,
+            recipientTokenAccount: wrongDestination,
+            proof: testEnv.balanceTree.getProof(wrongIndex, wrongRecipient, wrongPaymentInfo.amount),
+        };
+        await assertInstructionWillFail({
+            testEnv,
+            params: distributeParams,
+            executeInstruction: distribute,
+            expectedAnchorError: "InvalidProof"
+        });
+    });
+    it('Cannot Distribute to the wrong proof', async () => {
+        const incorrectProof = correctParams.proof.map(buffer => Buffer.from(Array.from(buffer).reverse()));
+        const incorrectParams: Distribute = {
+            ...correctParams,
+            proof: incorrectProof
+        };
+        await assertInstructionWillFail({
+            testEnv,
+            params: incorrectParams,
+            executeInstruction: distribute,
+            expectedAnchorError: "InvalidProof"
+        });
 
     });
-
+    it('Cannot distribute by unauthorized account', async () => {
+        const incorrectParams: Distribute = {
+            ...correctParams,
+            authority: testEnv.wrongAuthority,
+        };
+        await assertInstructionWillFail({
+            testEnv,
+            params: incorrectParams,
+            executeInstruction: distribute,
+            expectedAnchorError: "SignerNotAuthorized"
+        });
+    });
     it('Distributes tokens to the recipient', async () => {
         const paymentInfo = getAccountByIndex(testEnv.merkleDistributorInfo, index);
         if (!paymentInfo) {
@@ -81,10 +152,9 @@ export async function distributeTests(testEnv: TestEnvironment) {
             numberDistributedBefore: index
         };
         await distribute(testEnv, distributeParams);
-
+        index++;
     });
-
-    it('Cannot Distribute the same payment twice', async () => {
+    it('Cannot distribute the same payment twice', async () => {
         await assertInstructionWillFail({
             testEnv,
             params: correctParams,
@@ -94,6 +164,53 @@ export async function distributeTests(testEnv: TestEnvironment) {
             // will not match the on-chain index
             expectedAnchorError: "InvalidProof"
         });
-
     });
+    it('Distributes remaining payments', async () => {
+        const totalDistributions = totalNumberRecipients - index;
+        let processingIndicators = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
+        for (let i = 0; i < totalDistributions; i++) {
+            const currentIndex = index + i;
+            const paymentInfo = getAccountByIndex(testEnv.merkleDistributorInfo, currentIndex);
+            if (!paymentInfo) {
+                throw new Error(`No payment found for index ${currentIndex}`);
+            }
+            const recipient = new web3.PublicKey(paymentInfo.account);
+
+            const distributeParams: Distribute = {
+                authority: testEnv.authority,
+                recipient,
+                distributionTreePda: testEnv.distributionTreePda,
+                mint: testEnv.pyUsdMint,
+                tokenVault: testEnv.tokenVault,
+                recipientTokenAccount: getAssociatedTokenAddressSync(
+                    testEnv.pyUsdMint,
+                    recipient,
+                    false,
+                    TOKEN_2022_PROGRAM_ID
+                ),
+                amount: paymentInfo.amount,
+                proof: testEnv.balanceTree.getProof(currentIndex, recipient, paymentInfo.amount),
+                batchId: testEnv.distributionUniqueId,
+                numberDistributedBefore: currentIndex
+            };
+            await distribute(testEnv, distributeParams);
+
+            // Update progress
+            const progress = Math.round(((i + 1) / totalDistributions) * 100);
+
+            printDistributionProgress(totalDistributions, i);
+        }
+        clearDistributionProgress();
+
+        // Fetch and assert the DistributionTree account data
+        let distributionTreeData = await testEnv.program.account.distributionTree.fetch(testEnv.distributionTreePda);
+        assert.strictEqual(distributionTreeData.numberDistributed.toNumber(), totalNumberRecipients);
+
+        // Fetch and assert the token vault token account data
+        let tokenVaultTokenAccountData = await testEnv.program.provider.connection.getTokenAccountBalance(testEnv.tokenVault);
+        assert.strictEqual(tokenVaultTokenAccountData.value.amount, '0');
+    });
+
+
 }

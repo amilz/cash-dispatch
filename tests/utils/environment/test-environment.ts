@@ -12,6 +12,7 @@ export class TestEnvironment {
     pyUsdMintAuthorityKeypair: Keypair;
 
     authority: Keypair;
+    wrongAuthority: Keypair;
     tokenSource!: PublicKey;
 
     balanceTree!: PaymentTree;
@@ -24,6 +25,7 @@ export class TestEnvironment {
 
     constructor() {
         this.authority = Keypair.generate();
+        this.wrongAuthority = Keypair.generate();
         this.pyUsdMintAuthorityKeypair = Keypair.fromSecretKey(new Uint8Array(PY_USD_AUTH_SECRET));
         this.pyUsdMint = Keypair.fromSecretKey(new Uint8Array(PY_USD_SECRET)).publicKey;
     }
