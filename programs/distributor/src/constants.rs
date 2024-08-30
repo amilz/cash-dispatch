@@ -18,3 +18,8 @@ pub const PYUSD_MINT: &'static str = "CXk2AMBfi3TwaEL2468s6zP8xq9NxTXjp9gjMgzeUy
 #[cfg(any(feature = "localnet", not(any(feature = "mainnet", feature = "devnet"))))]
 #[constant]
 pub const PYUSD_MINT: &'static str = "PyuSdRak7SLogVeLcj8tgAk1JCJvHpfZ9R5keq25BkS";
+
+
+pub const BATCH_ID_MINIMUM_LENGTH: usize = 8;
+
+pub const BATCH_ID_MAXIMUM_LENGTH: usize = 15;

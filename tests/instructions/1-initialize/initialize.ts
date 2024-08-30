@@ -43,19 +43,22 @@ export async function initialize(
         tokenProgram: TOKEN_2022_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
     }
+    try {
+        await testEnv.program.methods.initialize(initializeParams)
+            .accountsPartial(accounts)
+            .signers([initialize.authority])
+            .rpc({ commitment: "processed", skipPreflight: false });
 
-    await testEnv.program.methods.initialize(initializeParams)
-        .accountsPartial(accounts)
-        .signers([initialize.authority])
-        .rpc({ commitment: "processed", skipPreflight: true });
+        // Fetch and assert the DistributionTree account data
+        let distributionTreeData = await testEnv.program.account.distributionTree.fetch(initialize.distributionTreePda);
+        assert.strictEqual(distributionTreeData.authority.toString(), initialize.authority.publicKey.toString());
+        assert.strictEqual(distributionTreeData.mint.toString(), initialize.mint.toString());
+        assert.strictEqual(distributionTreeData.tokenVault.toString(), initialize.tokenVault.toString());
+        assert.strictEqual(distributionTreeData.totalNumberRecipients.toNumber(), initialize.totalNumberRecipients);
+        assert.strictEqual(distributionTreeData.startTs.toNumber(), initialize.startTs);
 
-    // Fetch and assert the DistributionTree account data
-    let distributionTreeData = await testEnv.program.account.distributionTree.fetch(initialize.distributionTreePda);
-    assert.strictEqual(distributionTreeData.authority.toString(), initialize.authority.publicKey.toString());
-    assert.strictEqual(distributionTreeData.mint.toString(), initialize.mint.toString());
-    assert.strictEqual(distributionTreeData.tokenVault.toString(), initialize.tokenVault.toString());
-    assert.strictEqual(distributionTreeData.totalNumberRecipients.toNumber(), initialize.totalNumberRecipients);
-    assert.strictEqual(distributionTreeData.startTs.toNumber(), initialize.startTs);
+    } catch (error) {
+        throw error;
+    }
+
 }
-
-

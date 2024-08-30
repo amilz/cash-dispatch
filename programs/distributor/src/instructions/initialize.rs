@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use crate::{
-    constants::PYUSD_MINT, error::DistributionError, state::DistributionTree, DISTRIBUTION_TREE_SEED,
+    constants::PYUSD_MINT, error::DistributionError, state::DistributionTree, BATCH_ID_MAXIMUM_LENGTH, BATCH_ID_MINIMUM_LENGTH, DISTRIBUTION_TREE_SEED
 };
 use anchor_lang::prelude::*;
 use anchor_spl::{
@@ -97,16 +97,15 @@ impl<'info> Initialize<'info> {
 ///     5. The batch_id is between 8 and 15 characters
 pub fn validate(_ctx: &Context<Initialize>, params: &InitializeParams) -> Result<()> {
     let current_ts = Clock::get()?.unix_timestamp;
-
-    require_gt!(
-        params.end_ts.unwrap_or(i64::MAX),
-        params.start_ts,
-        DistributionError::StartTimestampAfterEnd
-    );
     require_gt!(
         params.end_ts.unwrap_or(i64::MAX),
         current_ts,
         DistributionError::TimestampsNotInFuture
+    );
+    require_gt!(
+        params.end_ts.unwrap_or(i64::MAX),
+        params.start_ts,
+        DistributionError::StartTimestampAfterEnd
     );
     require_gt!(
         params.total_number_recipients,
@@ -119,8 +118,8 @@ pub fn validate(_ctx: &Context<Initialize>, params: &InitializeParams) -> Result
         DistributionError::ZeroTransferAmount
     );
 
-    require_gte!(15, params.batch_id.len(), DistributionError::BatchIdTooLong);
-    require_gte!(params.batch_id.len(), 8, DistributionError::BatchIdTooShort);
+    require_gte!(BATCH_ID_MAXIMUM_LENGTH, params.batch_id.len(), DistributionError::BatchIdTooLong);
+    require_gte!(params.batch_id.len(), BATCH_ID_MINIMUM_LENGTH, DistributionError::BatchIdTooShort);
     Ok(())
 }
 
