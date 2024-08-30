@@ -5,7 +5,7 @@ import { AnchorError } from "@coral-xyz/anchor";
 interface AssertInstructionWillFailParams<T> {
     testEnv: TestEnvironment;
     params: T;
-    executeInstruction: (testEnv: TestEnvironment, params: T) => Promise<void>
+    executeInstruction: (testEnv: TestEnvironment, params: T) => Promise<void | number>
     expectedAnchorError?: string;
     expectedTransactionError?: string;
     logError?: boolean;

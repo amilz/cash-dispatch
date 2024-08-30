@@ -11,6 +11,7 @@ export async function distributeTests(testEnv: TestEnvironment) {
     let index: number;
     let correctParams: Distribute;
     let totalNumberRecipients: number;
+    let computeUnits: number | undefined;
 
     before('Set Distribute Params', async () => {
         const treeInfo = await testEnv.program.account.distributionTree.fetch(testEnv.distributionTreePda);
@@ -40,6 +41,10 @@ export async function distributeTests(testEnv: TestEnvironment) {
             batchId: testEnv.distributionUniqueId,
             numberDistributedBefore: index
         };
+        computeUnits = await distribute(testEnv, correctParams, undefined, false, true);
+        if (computeUnits) {
+            computeUnits = Math.floor(computeUnits * 1.35);
+        }
     });
     it('Cannot distribute with the wrong amount', async () => {
         const incorrectParams: Distribute = {
@@ -151,7 +156,7 @@ export async function distributeTests(testEnv: TestEnvironment) {
             batchId: testEnv.distributionUniqueId,
             numberDistributedBefore: index
         };
-        await distribute(testEnv, distributeParams);
+        await distribute(testEnv, distributeParams, computeUnits);
         index++;
     });
     it('Cannot distribute the same payment twice', async () => {
@@ -193,7 +198,7 @@ export async function distributeTests(testEnv: TestEnvironment) {
                 batchId: testEnv.distributionUniqueId,
                 numberDistributedBefore: currentIndex
             };
-            await distribute(testEnv, distributeParams);
+            await distribute(testEnv, distributeParams, computeUnits);
 
             // Update progress
             const progress = Math.round(((i + 1) / totalDistributions) * 100);

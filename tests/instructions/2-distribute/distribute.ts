@@ -1,8 +1,9 @@
 import { TestEnvironment } from "../../utils/environment/test-environment";
 import { PublicKey, Keypair, SystemProgram } from '@solana/web3.js';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
-import { BN } from '@coral-xyz/anchor';
+import { BN, web3 } from '@coral-xyz/anchor';
 import { assert } from 'chai';
+import { getSimulationComputeUnits } from "../../utils/solana-helpers";
 
 export interface Distribute {
     authority: Keypair,
@@ -20,7 +21,9 @@ export interface Distribute {
 export async function distribute(
     testEnv: TestEnvironment,
     distribute: Distribute,
-    skipPreflight = false
+    overRideComputeUnits = 200_000,
+    skipPreflight = false,
+    simulate = false
 ) {
     const distributeParams = {
         amount: distribute.amount,
@@ -40,13 +43,24 @@ export async function distribute(
         systemProgram: SystemProgram.programId,
     }
 
+    if (simulate) {
+        const ix = await testEnv.program.methods.distribute(distributeParams)
+            .accountsPartial(accounts)
+            .signers([distribute.authority])
+            .instruction();
+        const computeUnits = await getSimulationComputeUnits(testEnv.program.provider.connection, [ix], distribute.authority.publicKey, []);
+        return computeUnits ?? undefined;
+    }
+
     const initialVaultBalancePromise = testEnv.program.provider.connection.getTokenAccountBalance(distribute.tokenVault).catch(() => ({ value: { amount: '0' } }));
     const initialRecipientBalancePromise = testEnv.program.provider.connection.getTokenAccountBalance(distribute.recipientTokenAccount).catch(() => ({ value: { amount: '0' } }));
     const [initialVaultBalance, initialRecipientBalance] = await Promise.all([initialVaultBalancePromise, initialRecipientBalancePromise]);
 
+    const computeUnitIx = web3.ComputeBudgetProgram.setComputeUnitLimit({ units: overRideComputeUnits });
     try {
         const txid = await testEnv.program.methods.distribute(distributeParams)
             .accountsPartial(accounts)
+            .preInstructions([computeUnitIx], !!overRideComputeUnits )
             .signers([distribute.authority])
             .rpc({ commitment: "processed", skipPreflight });
         // Fetch and assert the DistributionTree account data
