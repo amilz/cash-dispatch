@@ -1,4 +1,6 @@
 import { keccak_256 } from "js-sha3";
+import { MerkleDistributorInfo, PaymentInfo } from "./types";
+import { BN } from "@coral-xyz/anchor";
 
 export class MerkleTree {
     private readonly elements: Buffer[];
@@ -91,4 +93,11 @@ export class MerkleTree {
             idx === 0 || !elements[idx - 1].equals(el)
         );
     }
+}
+
+export function getAccountByIndex(
+    distributorInfo: MerkleDistributorInfo,
+    targetIndex: number
+): PaymentInfo | undefined {
+    return distributorInfo.payments.find(paymentInfo => paymentInfo.index === targetIndex);
 }

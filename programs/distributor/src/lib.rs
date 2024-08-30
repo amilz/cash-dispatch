@@ -20,6 +20,9 @@ pub mod distributor {
     pub fn initialize(ctx: Context<Initialize>, params: InitializeParams) -> Result<()> {
         instructions::initialize::handler(ctx, params)
     }
+    pub fn distribute(ctx: Context<Distribute>, params: DistributeParams) -> Result<()> {
+        instructions::distribute::handler(ctx, params)
+    }
 
     /* TODO: Add remaining instructions
 
@@ -27,9 +30,7 @@ pub mod distributor {
         instructions::add_recipient::handler(ctx, wallet, amount)
     }
 
-    pub fn distribute(ctx: Context<Distribute>, proof: Vec<[u8; 32]>) -> Result<()> {
-        instructions::distribute::handler(ctx, proof)
-    }
+
 
     pub fn verify_distribution_status(ctx: Context<VerifyStatus>, index: u32, proof: Vec<[u8; 32]>) -> Result<bool> {
         instructions::verify_distribution_status::handler(ctx, index, proof)

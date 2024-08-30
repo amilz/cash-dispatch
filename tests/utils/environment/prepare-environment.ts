@@ -78,7 +78,6 @@ export async function initEnviroment({
             }))
         );
 
-
         const currentDate = new Date();
         const startTimestamp = Math.floor(currentDate.getTime() / 1000);
         const datePart = currentDate.toISOString().split('T')[0];

@@ -1,6 +1,6 @@
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, solana_program::keccak::hashv};
 
-use crate::CURRENT_VERSION;
+use crate::{error::DistributionError, utils::verify, CURRENT_VERSION};
 
 #[account]
 #[derive(InitSpace)]
@@ -58,5 +58,41 @@ impl DistributionTree {
         self.start_ts = start_ts;
         self.end_ts = end_ts;
         Ok(())
+    }
+
+    pub fn increment_number_distributed(&mut self) -> Result<()> {
+        self.number_distributed = self
+            .number_distributed
+            .checked_add(1)
+            .ok_or(DistributionError::MathError)?;
+
+        require_gte!(
+            self.total_number_recipients,
+            self.number_distributed,
+            DistributionError::DistributionAlreadyComplete
+        );
+
+        Ok(())
+    }
+
+    pub fn verify_proof(
+        &self,
+        recipient: Pubkey,
+        amount: u64,
+        proof: &Vec<[u8; 32]>,
+    ) -> Result<()> {
+        let leaf = self.get_leaf(recipient, amount);
+        let proof_is_valid = verify(proof, self.merkle_root, leaf);
+        require!(proof_is_valid, DistributionError::InvalidProof);
+        Ok(())
+    }
+
+    fn get_leaf(&self, recipient: Pubkey, amount: u64) -> [u8; 32] {
+        hashv(&[
+            &self.number_distributed.to_le_bytes(),
+            &recipient.to_bytes(),
+            &amount.to_le_bytes(),
+        ])
+        .0
     }
 }

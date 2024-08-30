@@ -1,8 +1,7 @@
 use std::str::FromStr;
 
 use crate::{
-    error::DistributionError, state::DistributionTree, DISTRIBUTION_TREE, 
-    constants::PYUSD_MINT
+    constants::PYUSD_MINT, error::DistributionError, state::DistributionTree, DISTRIBUTION_TREE_SEED,
 };
 use anchor_lang::prelude::*;
 use anchor_spl::{
@@ -23,9 +22,8 @@ pub struct Initialize<'info> {
         payer = authority,
         space = 8 + DistributionTree::INIT_SPACE,
         seeds = [
-            DISTRIBUTION_TREE.as_ref(),
+            DISTRIBUTION_TREE_SEED.as_ref(),
             params.batch_id.as_bytes(),
-            // TODO: Add unique identifier for the tree
         ],
         bump
     )]
@@ -93,11 +91,12 @@ impl<'info> Initialize<'info> {
 
 /// Validates the initialization parameters
 ///     1. The start timestamp is before the end timestamp
-///     2. The start, end, and clawback_start timestamps are all in the future
+///     2. The end timestamps is in the future
 ///     3. The total number of recipients is greater than 0
 ///     4. The transfer amount is greater than 0
+///     5. The batch_id is between 8 and 15 characters
 pub fn validate(_ctx: &Context<Initialize>, params: &InitializeParams) -> Result<()> {
-    let curr_ts = Clock::get()?.unix_timestamp;
+    let current_ts = Clock::get()?.unix_timestamp;
 
     require_gt!(
         params.end_ts.unwrap_or(i64::MAX),
@@ -105,13 +104,8 @@ pub fn validate(_ctx: &Context<Initialize>, params: &InitializeParams) -> Result
         DistributionError::StartTimestampAfterEnd
     );
     require_gt!(
-        params.start_ts,
-        curr_ts,
-        DistributionError::TimestampsNotInFuture
-    );
-    require_gt!(
         params.end_ts.unwrap_or(i64::MAX),
-        curr_ts,
+        current_ts,
         DistributionError::TimestampsNotInFuture
     );
     require_gt!(
@@ -125,6 +119,8 @@ pub fn validate(_ctx: &Context<Initialize>, params: &InitializeParams) -> Result
         DistributionError::ZeroTransferAmount
     );
 
+    require_gte!(15, params.batch_id.len(), DistributionError::BatchIdTooLong);
+    require_gte!(params.batch_id.len(), 8, DistributionError::BatchIdTooShort);
     Ok(())
 }
 

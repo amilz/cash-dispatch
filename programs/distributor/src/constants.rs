@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 #[constant]
-pub const DISTRIBUTION_TREE: &'static [u8] = b"DISTRIBUTION_TREE";
+pub const DISTRIBUTION_TREE_SEED: &'static [u8] = b"DISTRIBUTION_TREE";
 
 #[constant]
 pub const CURRENT_VERSION: u64 = 1;

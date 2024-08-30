@@ -1,50 +1,37 @@
 import { PublicKey } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
 import { PaymentTree } from "./PaymentTree";
-import { MerkleDistributorInfo, PaymentsImport } from "./types";
+import { MerkleDistributorInfo, PaymentInfo, Payments, PaymentsImport } from "./types";
 
 export function parsePaymentMap(paymentsImport: PaymentsImport): MerkleDistributorInfo {
-    const dataByAddress = new Map<string, { amount: BN }>();
+    const payments: PaymentInfo[] = [];
+    const treePayments: Payments = [];
 
-    for (const { address, earnings } of paymentsImport) {
-        if (dataByAddress.has(address)) {
-            throw new Error(`Duplicate address: ${address}`);
-        }
+    paymentsImport.forEach(({ address, earnings }, index) => {
         const amount = new BN(earnings);
         if (amount.lte(new BN(0))) {
             throw new Error(`Invalid amount for account: ${address}`);
         }
-        dataByAddress.set(address, { amount });
-    }
+        treePayments.push({ account: new PublicKey(address), amount });
+    });
 
-    const sortedAddresses = Array.from(dataByAddress.keys()).sort();
+    const tree = new PaymentTree(treePayments);
 
-    const tree = new PaymentTree(
-        sortedAddresses.map((address) => ({
-            account: new PublicKey(address),
-            amount: dataByAddress.get(address)!.amount,
-        }))
-    );
+    payments.push(...treePayments.map(({ account, amount }, index) => ({
+        index,
+        account: account.toBase58(),
+        amount,
+        proof: tree.getProof(index, account, amount)
+    })));
 
-    const payments: MerkleDistributorInfo["payments"] = {};
-    for (let i = 0; i < sortedAddresses.length; i++) {
-        const address = sortedAddresses[i];
-        const { amount } = dataByAddress.get(address)!;
-        payments[address] = {
-            index: i,
-            amount: amount,
-            proof: tree.getProof(i, new PublicKey(address), amount),
-        };
-    }
-
-    const tokenTotal = sortedAddresses.reduce(
-        (sum, addr) => sum.add(dataByAddress.get(addr)!.amount),
+    const tokenTotal = payments.reduce(
+        (sum, { amount }) => sum.add(amount),
         new BN(0)
     );
 
     return {
         merkleRoot: tree.getRoot(),
-        tokenTotal: tokenTotal.toString(),
+        tokenTotal,
         payments,
     };
 }

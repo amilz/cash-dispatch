@@ -20,5 +20,5 @@ mainnet = []
 devnet = []
 
 [dependencies]
-anchor-lang = "0.30.1"
+anchor-lang = { version = "0.30.1", features = ["init-if-needed"] }
 anchor-spl = "0.30.1"

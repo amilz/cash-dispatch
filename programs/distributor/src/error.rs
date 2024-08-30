@@ -14,6 +14,18 @@ pub enum DistributionError {
     InvalidProof,
     #[msg("Distribution is paused")]
     Paused,
+    #[msg("Batch ID is too long")]
+    BatchIdTooLong,
+    #[msg("Batch ID is too short")]
+    BatchIdTooShort,
+    #[msg("Math error")]
+    MathError,
+    #[msg("Distribution has not started")]
+    DistributionNotStarted,
+    #[msg("Distribution has ended")]
+    DistributionEnded,
+    #[msg("Already distributed to all recipients")]
+    DistributionAlreadyComplete,
     // Other custom errors...
 }
 
