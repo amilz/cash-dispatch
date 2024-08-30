@@ -31,7 +31,7 @@ pub struct Initialize<'info> {
 
     /// Mint account (PYUSD)
     #[account(
-        address = Pubkey::from_str(&PYUSD_MINT).unwrap(),
+        address = Pubkey::from_str(&PYUSD_MINT).unwrap() @ DistributionError::InvalidTokenMint,
     )]
     pub mint: InterfaceAccount<'info, Mint>,
 

@@ -1,7 +1,4 @@
-
-use crate::{
-    constants::DISTRIBUTION_TREE_SEED, error::DistributionError, state::DistributionTree
-};
+use crate::{constants::DISTRIBUTION_TREE_SEED, error::DistributionError, state::DistributionTree};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
@@ -28,9 +25,9 @@ pub struct Distribute<'info> {
             params.batch_id.as_bytes(),
         ],
         bump = distribution_tree.bump,
-        has_one = mint,
-        has_one = token_vault,
-        has_one = authority
+        has_one = mint @ DistributionError::InvalidTokenMint,
+        has_one = token_vault @ DistributionError::InvalidTokenVault,
+        has_one = authority @ DistributionError::SignerNotAuthorized
     )]
     pub distribution_tree: Account<'info, DistributionTree>,
 

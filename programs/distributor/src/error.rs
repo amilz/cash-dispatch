@@ -26,6 +26,12 @@ pub enum DistributionError {
     DistributionEnded,
     #[msg("Already distributed to all recipients")]
     DistributionAlreadyComplete,
+    #[msg("Invalid Token Mint")]
+    InvalidTokenMint,
+    #[msg("Invalid Token Vault")]
+    InvalidTokenVault,
+    #[msg("Signer is Not Authorized for this DistributionTree")]
+    SignerNotAuthorized,
     // Other custom errors...
 }
 
