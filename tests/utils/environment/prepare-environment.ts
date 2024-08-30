@@ -8,7 +8,17 @@ import { createAssociatedTokenAccountIdempotent, mintTo, TOKEN_2022_PROGRAM_ID }
 import { PaymentTree, PaymentsImport, parsePaymentMap } from '../merkle-tree';
 import { getDistributionTreePDA, getTokenVaultAddress } from '../pdas';
 
-export async function initEnviroment(testEnv: TestEnvironment, numPayments: number = NUM_SAMPLE_BALANCES) {
+interface InitEnvironmentParams {
+    testEnv: TestEnvironment;
+    numPayments?: number;
+    skipInitMint?: boolean;
+}
+
+export async function initEnviroment({
+    testEnv,
+    numPayments = NUM_SAMPLE_BALANCES,
+    skipInitMint = false
+}: InitEnvironmentParams) {
     try {
         const provider = anchor.AnchorProvider.env();
 
@@ -21,16 +31,18 @@ export async function initEnviroment(testEnv: TestEnvironment, numPayments: numb
             provider.connection,
             INITIAL_SOL_BALANCE * web3.LAMPORTS_PER_SOL
         );
-        
-        testEnv.pyUsdMint = await makeTokenMint({
-            connection: provider.connection,
-            mintAuthority: testEnv.pyUsdMintAuthorityKeypair,
-            name: "PayPal USD",
-            symbol: "PYUSD",
-            decimals: 6,
-            uri: "https://token-metadata.paxos.com/pyusd_metadata/prod/solana/pyusd_metadata.json",
-            mint: web3.Keypair.fromSecretKey(new Uint8Array(PY_USD_SECRET)),
-        });
+
+        if (!skipInitMint) {
+            await makeTokenMint({
+                connection: provider.connection,
+                mintAuthority: testEnv.pyUsdMintAuthorityKeypair,
+                name: "PayPal USD",
+                symbol: "PYUSD",
+                decimals: 6,
+                uri: "https://token-metadata.paxos.com/pyusd_metadata/prod/solana/pyusd_metadata.json",
+                mint: web3.Keypair.fromSecretKey(new Uint8Array(PY_USD_SECRET)),
+            });
+        }
 
         testEnv.tokenSource = await createAssociatedTokenAccountIdempotent(
             provider.connection,
@@ -82,8 +94,6 @@ export async function initEnviroment(testEnv: TestEnvironment, numPayments: numb
             mint: testEnv.pyUsdMint,
             distributionTreePDA: testEnv.distributionTreePda
         });
-
-
     } catch (error) {
         console.error('Failed to initialize test environment', error);
         throw error;

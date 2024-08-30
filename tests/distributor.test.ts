@@ -6,7 +6,7 @@ describe("The Distributor Program", () => {
   const testEnv = new TestEnvironment();
 
   before('Prepare Test Enviroment', async () => {
-    await initEnviroment(testEnv);
+    await initEnviroment({ testEnv });
   });
 
   describe('Initialize Distributor Tests', async () => {
