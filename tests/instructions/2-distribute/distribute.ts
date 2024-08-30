@@ -20,6 +20,7 @@ export interface Distribute {
 export async function distribute(
     testEnv: TestEnvironment,
     distribute: Distribute,
+    skipPreflight = false
 ) {
     const distributeParams = {
         amount: distribute.amount,
@@ -47,7 +48,7 @@ export async function distribute(
         const txid = await testEnv.program.methods.distribute(distributeParams)
             .accountsPartial(accounts)
             .signers([distribute.authority])
-            .rpc({ commitment: "processed", skipPreflight: false });
+            .rpc({ commitment: "processed", skipPreflight });
         // Fetch and assert the DistributionTree account data
         let distributionTreeData = await testEnv.program.account.distributionTree.fetch(distribute.distributionTreePda);
         assert.strictEqual(distributionTreeData.numberDistributed.toNumber(), distribute.numberDistributedBefore + 1);

@@ -167,7 +167,6 @@ export async function distributeTests(testEnv: TestEnvironment) {
     });
     it('Distributes remaining payments', async () => {
         const totalDistributions = totalNumberRecipients - index;
-        let processingIndicators = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
         for (let i = 0; i < totalDistributions; i++) {
             const currentIndex = index + i;
@@ -211,6 +210,4 @@ export async function distributeTests(testEnv: TestEnvironment) {
         let tokenVaultTokenAccountData = await testEnv.program.provider.connection.getTokenAccountBalance(testEnv.tokenVault);
         assert.strictEqual(tokenVaultTokenAccountData.value.amount, '0');
     });
-
-
 }
