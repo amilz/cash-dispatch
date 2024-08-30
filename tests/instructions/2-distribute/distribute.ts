@@ -39,6 +39,10 @@ export async function distribute(
         systemProgram: SystemProgram.programId,
     }
 
+    const initialVaultBalancePromise = testEnv.program.provider.connection.getTokenAccountBalance(distribute.tokenVault).catch(() => ({ value: { amount: '0' } }));
+    const initialRecipientBalancePromise = testEnv.program.provider.connection.getTokenAccountBalance(distribute.recipientTokenAccount).catch(() => ({ value: { amount: '0' } }));
+    const [initialVaultBalance, initialRecipientBalance] = await Promise.all([initialVaultBalancePromise, initialRecipientBalancePromise]);
+
     await testEnv.program.methods.distribute(distributeParams)
         .accountsPartial(accounts)
         .signers([distribute.authority])
@@ -47,6 +51,20 @@ export async function distribute(
     // Fetch and assert the DistributionTree account data
     let distributionTreeData = await testEnv.program.account.distributionTree.fetch(distribute.distributionTreePda);
     assert.strictEqual(distributionTreeData.numberDistributed.toNumber(), distribute.numberDistributedBefore + 1);
+    assert.strictEqual(distributionTreeData.authority.toString(), distribute.authority.publicKey.toString());
+    assert.strictEqual(distributionTreeData.mint.toString(), distribute.mint.toString());
+    assert.strictEqual(distributionTreeData.tokenVault.toString(), distribute.tokenVault.toString());
+
+    // Fetch and assert the recipient token account data
+    let recipientTokenAccountData = await testEnv.program.provider.connection.getTokenAccountBalance(distribute.recipientTokenAccount);
+    const recipientBalanceChange =  BigInt(recipientTokenAccountData.value.amount) - BigInt(initialRecipientBalance.value.amount);
+    assert.strictEqual(recipientBalanceChange.toString(), distribute.amount.toString());
+
+    // Fetch and assert the token vault token account data
+    let tokenVaultTokenAccountData = await testEnv.program.provider.connection.getTokenAccountBalance(distribute.tokenVault);
+    const vaultBalanceChange = BigInt(initialVaultBalance.value.amount) - BigInt(tokenVaultTokenAccountData.value.amount);
+    assert.strictEqual(vaultBalanceChange.toString(), distribute.amount.toString());
+    
 }
 
 
