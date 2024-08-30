@@ -12,12 +12,15 @@ interface InitEnvironmentParams {
     testEnv: TestEnvironment;
     numPayments?: number;
     skipInitMint?: boolean;
+    startOffset?: number;
 }
 
 export async function initEnviroment({
     testEnv,
     numPayments = NUM_SAMPLE_BALANCES,
-    skipInitMint = false
+    skipInitMint = false,
+    startOffset = -1000
+
 }: InitEnvironmentParams) {
     try {
         const provider = anchor.AnchorProvider.env();
@@ -79,7 +82,7 @@ export async function initEnviroment({
         );
 
         const currentDate = new Date();
-        const startTimestamp = Math.floor(currentDate.getTime() / 1000);
+        const startTimestamp = Math.floor(currentDate.getTime() / 1000) + startOffset; // 
         const datePart = currentDate.toISOString().split('T')[0];
         const randomPart = Math.random().toString(36).substring(2, 6); // 4 random alphanumeric characters
         const distributionId = `${datePart}-${randomPart}`.trim();

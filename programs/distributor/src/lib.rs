@@ -20,6 +20,7 @@ pub mod distributor {
     pub fn initialize(ctx: Context<Initialize>, params: InitializeParams) -> Result<()> {
         instructions::initialize::handler(ctx, params)
     }
+    #[access_control(instructions::distribute::validate(&ctx, &params))]
     pub fn distribute(ctx: Context<Distribute>, params: DistributeParams) -> Result<()> {
         instructions::distribute::handler(ctx, params)
     }
