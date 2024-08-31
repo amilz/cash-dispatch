@@ -4,6 +4,17 @@ import { web3 } from "@coral-xyz/anchor";
 import { getDistributionTreePDA, getTokenVaultAddress } from "../../utils/pdas";
 import { assertInstructionWillFail } from "../helpers";
 
+
+/**
+ * INITIALIZE INSTRUCTION TESTS
+ * 
+ * @param testEnv 
+ * 
+ * This test suite:
+ * 1. Verifies that the initialization cannot occur under a variety of incorrect parameters/conditions
+ * 2. Verifies that the initialization can occur under proper parameters/conditions
+ * 3. Verifies the tree cannot be reinitialized
+ */
 export async function initializeTests(testEnv: TestEnvironment) {
     let correctParams: Initialize;
 

@@ -1,8 +1,9 @@
 import * as anchor from '@coral-xyz/anchor';
 import { Distributor } from "../../../target/types/distributor";
-import { PaymentTree, MerkleDistributorInfo } from '../merkle-tree';
+import { PaymentTree, MerkleDistributorInfo, PaymentsImport, parsePaymentMap } from '../merkle-tree';
 import { PublicKey, Keypair } from '@solana/web3.js';
-import { PY_USD_AUTH_SECRET, PY_USD_SECRET } from '../constants';
+import { BASE_PAYMENT_AMOUNT, NUM_SAMPLE_BALANCES, PY_USD_AUTH_SECRET, PY_USD_SECRET } from '../constants';
+import { getDistributionTreePDA, getTokenVaultAddress } from '../pdas';
 
 export class TestEnvironment {
     provider!: anchor.AnchorProvider;
@@ -33,5 +34,44 @@ export class TestEnvironment {
     async cleanup(): Promise<void> {
         // Implement cleanup logic here
         // For example, close token accounts, etc.
+    }
+
+    async newTree(params: {
+        numPayments?: number,
+        startOffset?: number,
+    } = {}): Promise<void> {
+        const {
+            numPayments = NUM_SAMPLE_BALANCES,
+            startOffset = -1000,
+        } = params;
+
+        let samplePayments: PaymentsImport = Array.from({ length: numPayments }, (_, i) => ({
+            address: Keypair.generate().publicKey.toBase58(),
+            earnings: ((i + 1) * BASE_PAYMENT_AMOUNT).toString(),
+        }));
+
+        this.merkleDistributorInfo = parsePaymentMap(samplePayments);
+
+        this.balanceTree = new PaymentTree(
+            samplePayments.map(({ address, earnings }, index) => ({
+                account: new PublicKey(address),
+                amount: new anchor.BN(earnings),
+            }))
+        );
+
+        const currentDate = new Date();
+        this.distributionStartTs = Math.floor(currentDate.getTime() / 1000) + startOffset;
+        const datePart = currentDate.toISOString().split('T')[0];
+        const randomPart = Math.random().toString(36).substring(2, 6);
+        this.distributionUniqueId = `${datePart}-${randomPart}`.trim();
+
+        this.distributionTreePda = getDistributionTreePDA({
+            distributorProgram: this.program.programId,
+            batchId: this.distributionUniqueId
+        });
+        this.tokenVault = getTokenVaultAddress({
+            mint: this.pyUsdMint,
+            distributionTreePDA: this.distributionTreePda
+        });
     }
 }

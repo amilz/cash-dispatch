@@ -1,4 +1,4 @@
-use crate::{constants::DISTRIBUTION_TREE_SEED, error::DistributionError, state::DistributionTree};
+use crate::{constants::DISTRIBUTION_TREE_SEED, error::DistributionError, state::DistributionTree, DistributionStatus};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
@@ -99,7 +99,8 @@ impl<'info> Distribute<'info> {
 /// Validates the distribution parameters
 ///     1. The distribution has started
 ///     2. The distribution has not ended
-///     3. The proof is valid
+///     3. The distribution is active
+///     4. The proof is valid
 pub fn validate(ctx: &Context<Distribute>, params: &DistributeParams) -> Result<()> {
     let distribution_tree = &ctx.accounts.distribution_tree;
     let current_ts = Clock::get()?.unix_timestamp;
@@ -112,6 +113,10 @@ pub fn validate(ctx: &Context<Distribute>, params: &DistributeParams) -> Result<
         distribution_tree.end_ts,
         current_ts,
         DistributionError::DistributionEnded
+    );
+    require!(
+        distribution_tree.status == DistributionStatus::Active,
+        DistributionError::DistributionNotActive
     );
     distribution_tree.verify_proof(ctx.accounts.recipient.key(), params.amount, &params.proof)?;
     Ok(())

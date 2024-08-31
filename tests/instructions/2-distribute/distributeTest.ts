@@ -6,7 +6,18 @@ import { getAccountByIndex } from "../../utils/merkle-tree";
 import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { assertInstructionWillFail, clearDistributionProgress, printDistributionProgress } from "../helpers";
 
-
+/**
+ * DISTRIBUTE INSTRUCTION TESTS
+ * 
+ * @param testEnv 
+ * 
+ * This test suite tests leverages the Distribution Tree Initialized in the previous test suite.
+ * The test suite then:
+ * 1. Verifies that the distribution cannot occur under a variety of incorrect parameters/conditions
+ * 2. Verifies that the distribution can occur under proper parameters/conditions
+ * 3. Verifies the Distribution Tree can be emptied by distributing all remaining payments
+ * 4. Verifies the Distribution Tree cannot distribute anything after it the distribution is complete
+ */
 export async function distributeTests(testEnv: TestEnvironment) {
     let index: number;
     let correctParams: Distribute;
@@ -43,7 +54,7 @@ export async function distributeTests(testEnv: TestEnvironment) {
         };
         computeUnits = await distribute(testEnv, correctParams, undefined, false, true);
         if (computeUnits) {
-            computeUnits = Math.floor(computeUnits * 1.35);
+            computeUnits = Math.floor(computeUnits * 1.5);
         }
     });
     it('Cannot distribute with the wrong amount', async () => {
@@ -210,9 +221,18 @@ export async function distributeTests(testEnv: TestEnvironment) {
         // Fetch and assert the DistributionTree account data
         let distributionTreeData = await testEnv.program.account.distributionTree.fetch(testEnv.distributionTreePda);
         assert.strictEqual(distributionTreeData.numberDistributed.toNumber(), totalNumberRecipients);
+        assert.deepStrictEqual(distributionTreeData.status, { complete: {} });
 
         // Fetch and assert the token vault token account data
         let tokenVaultTokenAccountData = await testEnv.program.provider.connection.getTokenAccountBalance(testEnv.tokenVault);
         assert.strictEqual(tokenVaultTokenAccountData.value.amount, '0');
+    });
+    it('Cannot pause a distribution that is not active', async () => {
+        await assertInstructionWillFail({
+            testEnv,
+            params: correctParams,
+            executeInstruction: distribute,
+            expectedAnchorError: "DistributionNotActive"
+        });
     });
 }

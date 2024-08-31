@@ -16,4 +16,5 @@ wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.test.ts"
+init_idl = "anchor idl init D1STwmxtNRt9NWcZThPTCLZWzVsk7pPryWz3GjVgRtzo --filepath target/idl/distributor.json"
 

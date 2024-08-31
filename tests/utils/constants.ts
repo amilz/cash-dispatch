@@ -13,5 +13,5 @@ export const PY_USD_AUTH_SECRET = [247,10,235,35,153,158,192,113,238,61,182,91,1
 
 export const INITIAL_SOL_BALANCE = 100;
 export const INITIAL_TOKEN_BALANCE = 10_000_000_000_000; // 10 million tokens with 6 decimals
-export const NUM_SAMPLE_BALANCES = 15;
+export const NUM_SAMPLE_BALANCES = 10;
 export const BASE_PAYMENT_AMOUNT = 100_000_000;

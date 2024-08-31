@@ -16,6 +16,8 @@ pub struct DistributionTree {
     /// However, any <= 15 characters can be used
     #[max_len(20)]
     pub batch_id: String,
+    /// The status of the distribution
+    pub status: DistributionStatus,
     /// The 256-bit merkle root.
     pub merkle_root: [u8; 32],
     /// The token to be distributed.
@@ -50,6 +52,7 @@ impl DistributionTree {
         self.version = CURRENT_VERSION;
         self.authority = authority;
         self.batch_id = batch_id;
+        self.status = DistributionStatus::Active;
         self.merkle_root = merkle_root;
         self.mint = mint;
         self.token_vault = token_vault;
@@ -71,6 +74,10 @@ impl DistributionTree {
             self.number_distributed,
             DistributionError::DistributionAlreadyComplete
         );
+
+        if self.is_complete() {
+            self.status = DistributionStatus::Complete;
+        }
 
         Ok(())
     }
@@ -95,4 +102,29 @@ impl DistributionTree {
         ])
         .0
     }
+
+    pub fn pause(&mut self) {
+        self.status = DistributionStatus::Paused;
+    }
+
+    pub fn resume(&mut self) {
+        self.status = DistributionStatus::Active;
+    }
+
+    pub fn cancel(&mut self) {
+        self.status = DistributionStatus::Cancelled;
+    }
+    
+    fn is_complete(&self) -> bool {
+        self.number_distributed == self.total_number_recipients
+    }
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, InitSpace)]
+pub enum DistributionStatus {
+    Active,
+    Complete,
+    // Not implementing these statuses for now
+    Paused,
+    Cancelled,
 }

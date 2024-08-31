@@ -32,6 +32,8 @@ pub enum DistributionError {
     InvalidTokenVault,
     #[msg("Signer is Not Authorized for this DistributionTree")]
     SignerNotAuthorized,
+    #[msg("Distribution is not active")]
+    DistributionNotActive,
     // Other custom errors...
 }
 
