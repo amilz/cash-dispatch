@@ -5,6 +5,7 @@ import { BN, web3 } from "@coral-xyz/anchor";
 import { getAccountByIndex } from "../../utils/merkle-tree";
 import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { assertInstructionWillFail, clearDistributionProgress, printDistributionProgress } from "../helpers";
+import { MAX_COMPUTE_UNITS } from "../../utils/constants";
 
 /**
  * DISTRIBUTE INSTRUCTION TESTS
@@ -56,6 +57,9 @@ export async function distributeTests(testEnv: TestEnvironment) {
         if (computeUnits) {
             computeUnits = Math.floor(computeUnits * 1.5);
         }
+        // preliminar tests suggest that ~100_000 are sufficient
+        // but this likely varies on size of the tree (additional testing/simulation required)
+        computeUnits = MAX_COMPUTE_UNITS;
     });
     it('Cannot distribute with the wrong amount', async () => {
         const incorrectParams: Distribute = {
@@ -178,10 +182,11 @@ export async function distributeTests(testEnv: TestEnvironment) {
             // We expect that the verify proof will fail because 
             // the payment has already been distributed and the index
             // will not match the on-chain index
-            expectedAnchorError: "InvalidProof"
+            expectedAnchorError: "AlreadyClaimed"
         });
     });
-    it('Distributes remaining payments', async () => {
+    // No longer require sequential distributions - keeping test for reference in case we need to re-enable it
+    it.skip('Distributes remaining payments sequentially', async () => {
         const totalDistributions = totalNumberRecipients - index;
 
         for (let i = 0; i < totalDistributions; i++) {
@@ -209,7 +214,7 @@ export async function distributeTests(testEnv: TestEnvironment) {
                 batchId: testEnv.distributionUniqueId,
                 numberDistributedBefore: currentIndex
             };
-            await distribute(testEnv, distributeParams, computeUnits);
+            await distribute(testEnv, distributeParams, computeUnits, undefined, true);
 
             // Update progress
             const progress = Math.round(((i + 1) / totalDistributions) * 100);
@@ -222,6 +227,82 @@ export async function distributeTests(testEnv: TestEnvironment) {
         let distributionTreeData = await testEnv.program.account.distributionTree.fetch(testEnv.distributionTreePda);
         assert.strictEqual(distributionTreeData.numberDistributed.toNumber(), totalNumberRecipients);
         assert.deepStrictEqual(distributionTreeData.status, { complete: {} });
+
+        // Fetch and assert the token vault token account data
+        let tokenVaultTokenAccountData = await testEnv.program.provider.connection.getTokenAccountBalance(testEnv.tokenVault);
+        assert.strictEqual(tokenVaultTokenAccountData.value.amount, '0');
+    });
+    it('Distributes remaining payments in batches', async () => {
+        const totalDistributions = totalNumberRecipients - index;
+        const batchSize = 256;
+        const distributions: Distribute[] = [];
+
+        // Prepare all distribution parameters
+        for (let i = 0; i < totalDistributions; i++) {
+            const currentIndex = index + i;
+            const paymentInfo = getAccountByIndex(testEnv.merkleDistributorInfo, currentIndex);
+            if (!paymentInfo) {
+                throw new Error(`No payment found for index ${currentIndex}`);
+            }
+            const recipient = new web3.PublicKey(paymentInfo.account);
+
+            distributions.push({
+                authority: testEnv.authority,
+                recipient,
+                distributionTreePda: testEnv.distributionTreePda,
+                mint: testEnv.pyUsdMint,
+                tokenVault: testEnv.tokenVault,
+                recipientTokenAccount: getAssociatedTokenAddressSync(
+                    testEnv.pyUsdMint,
+                    recipient,
+                    false,
+                    TOKEN_2022_PROGRAM_ID
+                ),
+                amount: paymentInfo.amount,
+                proof: testEnv.balanceTree.getProof(currentIndex, recipient, paymentInfo.amount),
+                batchId: testEnv.distributionUniqueId,
+                numberDistributedBefore: currentIndex
+            });
+        }
+
+        // Process distributions in batches
+        for (let i = 0; i < distributions.length; i += batchSize) {
+            const batch = distributions.slice(i, i + batchSize);
+            await Promise.all(batch.map(params =>
+                distribute(testEnv, params, computeUnits).catch(error => {
+                    console.error(`Failed to distribute to ${params.recipient.toBase58()}:`, error);
+                    return null; // Return null for failed distributions
+                })
+            ));
+
+            // Update progress
+            printDistributionProgress(totalDistributions, i + batch.length);
+            const DELAY = 1;
+            await new Promise(resolve => setTimeout(resolve, DELAY));
+        }
+
+        clearDistributionProgress();
+
+        // Fetch and assert the DistributionTree account data
+        let distributionTreeData = await testEnv.program.account.distributionTree.fetch(testEnv.distributionTreePda);
+        assert.strictEqual(distributionTreeData.numberDistributed.toNumber(), totalNumberRecipients);
+        assert.deepStrictEqual(distributionTreeData.status, { complete: {} });
+        distributionTreeData.recipientsDistributedBitmap.forEach((bitmap, index) => {
+            const isLastElement = index === distributionTreeData.recipientsDistributedBitmap.length - 1;
+            const expectedBits = isLastElement
+                ? totalNumberRecipients % 64 || 64 
+                : 64;
+
+            const binaryString = bitmap.toString(2).padStart(64, '0');
+            const setbits = binaryString.split('1').length - 1;
+
+            assert.strictEqual(
+                setbits,
+                expectedBits,
+                `Bitmap element ${index} should have ${expectedBits} bits set, but has ${setbits}`
+            );
+        });
+
 
         // Fetch and assert the token vault token account data
         let tokenVaultTokenAccountData = await testEnv.program.provider.connection.getTokenAccountBalance(testEnv.tokenVault);

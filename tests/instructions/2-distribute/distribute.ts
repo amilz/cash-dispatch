@@ -4,6 +4,7 @@ import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-
 import { BN, web3 } from '@coral-xyz/anchor';
 import { assert } from 'chai';
 import { getSimulationComputeUnits } from "../../utils/solana-helpers";
+import { isBitSet } from "../../utils/merkle-tree";
 
 export interface Distribute {
     authority: Keypair,
@@ -23,12 +24,16 @@ export async function distribute(
     distribute: Distribute,
     overRideComputeUnits = 200_000,
     skipPreflight = false,
-    simulate = false
+    simulate = false,
+    // Foregoing vault balance checks and number of recipients distributed checks when doing batch distributions
+    // This is because the tests are run in parallel and the vault balance and number of recipients distributed checks are not deterministic
+    skipSequenceChecks = true
 ) {
     const distributeParams = {
         amount: distribute.amount,
         batchId: distribute.batchId,
         proof: distribute.proof.map(buffer => Array.from(buffer)),
+        index: new BN(distribute.numberDistributedBefore),
     };
 
     const accounts = {
@@ -52,33 +57,45 @@ export async function distribute(
         return computeUnits ?? undefined;
     }
 
+
     const initialVaultBalancePromise = testEnv.program.provider.connection.getTokenAccountBalance(distribute.tokenVault).catch(() => ({ value: { amount: '0' } }));
+
     const initialRecipientBalancePromise = testEnv.program.provider.connection.getTokenAccountBalance(distribute.recipientTokenAccount).catch(() => ({ value: { amount: '0' } }));
-    const [initialVaultBalance, initialRecipientBalance] = await Promise.all([initialVaultBalancePromise, initialRecipientBalancePromise]);
+    const [initialRecipientBalance, initialVaultBalance] = await Promise.all([initialRecipientBalancePromise, initialVaultBalancePromise]);
 
     const computeUnitIx = web3.ComputeBudgetProgram.setComputeUnitLimit({ units: overRideComputeUnits });
     try {
         const txid = await testEnv.program.methods.distribute(distributeParams)
             .accountsPartial(accounts)
-            .preInstructions([computeUnitIx], !!overRideComputeUnits )
+            .preInstructions([computeUnitIx], !!overRideComputeUnits)
             .signers([distribute.authority])
             .rpc({ commitment: "processed", skipPreflight });
         // Fetch and assert the DistributionTree account data
         let distributionTreeData = await testEnv.program.account.distributionTree.fetch(distribute.distributionTreePda);
-        assert.strictEqual(distributionTreeData.numberDistributed.toNumber(), distribute.numberDistributedBefore + 1);
         assert.strictEqual(distributionTreeData.authority.toString(), distribute.authority.publicKey.toString());
         assert.strictEqual(distributionTreeData.mint.toString(), distribute.mint.toString());
         assert.strictEqual(distributionTreeData.tokenVault.toString(), distribute.tokenVault.toString());
+
+        assert.isTrue(
+            isBitSet(distributionTreeData.recipientsDistributedBitmap, distributeParams.index.toNumber()),
+            `Bitmap not set for recipient at index ${distributeParams.index.toString()}`
+        );
 
         // Fetch and assert the recipient token account data
         let recipientTokenAccountData = await testEnv.program.provider.connection.getTokenAccountBalance(distribute.recipientTokenAccount);
         const recipientBalanceChange = BigInt(recipientTokenAccountData.value.amount) - BigInt(initialRecipientBalance.value.amount);
         assert.strictEqual(recipientBalanceChange.toString(), distribute.amount.toString());
 
-        // Fetch and assert the token vault token account data
-        let tokenVaultTokenAccountData = await testEnv.program.provider.connection.getTokenAccountBalance(distribute.tokenVault);
-        const vaultBalanceChange = BigInt(initialVaultBalance.value.amount) - BigInt(tokenVaultTokenAccountData.value.amount);
-        assert.strictEqual(vaultBalanceChange.toString(), distribute.amount.toString());
+        if (!skipSequenceChecks) {
+            // Fetch and assert the token vault token account data
+            let tokenVaultTokenAccountData = await testEnv.program.provider.connection.getTokenAccountBalance(distribute.tokenVault);
+            const vaultBalanceChange = BigInt(initialVaultBalance.value.amount) - BigInt(tokenVaultTokenAccountData.value.amount);
+            assert.strictEqual(vaultBalanceChange.toString(), distribute.amount.toString());
+
+            // Verify the number of recipients distributed is incremented by 1
+            assert.strictEqual(distributionTreeData.numberDistributed.toNumber(), distribute.numberDistributedBefore + 1);
+        }
+
     } catch (error) {
         throw error;
     }

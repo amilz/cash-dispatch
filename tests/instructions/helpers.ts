@@ -50,3 +50,7 @@ export function printDistributionProgress(totalDistributions: number, currentInd
 export function clearDistributionProgress() {
     process.stdout.write('\r');
 }
+
+export async function delay (ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}

@@ -101,3 +101,9 @@ export function getAccountByIndex(
 ): PaymentInfo | undefined {
     return distributorInfo.payments.find(paymentInfo => paymentInfo.index === targetIndex);
 }
+
+export function isBitSet(bitmap: BN[], index: number): boolean {
+    const bitmapIndex = Math.floor(index / 64);
+    const bitIndex = index % 64;
+    return bitmap[bitmapIndex].testn(bitIndex);
+}

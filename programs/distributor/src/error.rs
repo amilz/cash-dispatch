@@ -34,6 +34,12 @@ pub enum DistributionError {
     SignerNotAuthorized,
     #[msg("Distribution is not active")]
     DistributionNotActive,
+    #[msg("Too many recipients")]
+    TooManyRecipients,
+    #[msg("Index out of bounds")]
+    IndexOutOfBounds,
+    #[msg("Already claimed")]
+    AlreadyClaimed,
     // Other custom errors...
 }
 

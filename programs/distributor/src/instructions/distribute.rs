@@ -1,4 +1,7 @@
-use crate::{constants::DISTRIBUTION_TREE_SEED, error::DistributionError, state::DistributionTree, DistributionStatus};
+use crate::{
+    constants::DISTRIBUTION_TREE_SEED, error::DistributionError, state::DistributionTree,
+    DistributionStatus,
+};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
@@ -67,6 +70,7 @@ pub struct DistributeParams {
     pub amount: u64,
     pub proof: Vec<[u8; 32]>,
     pub batch_id: String,
+    pub index: u64,
 }
 
 impl<'info> Distribute<'info> {
@@ -118,7 +122,12 @@ pub fn validate(ctx: &Context<Distribute>, params: &DistributeParams) -> Result<
         distribution_tree.status == DistributionStatus::Active,
         DistributionError::DistributionNotActive
     );
-    distribution_tree.verify_proof(ctx.accounts.recipient.key(), params.amount, &params.proof)?;
+    require!(
+        !distribution_tree.is_claimed(params.index)?,
+        DistributionError::AlreadyClaimed
+    );
+
+    distribution_tree.verify_proof(ctx.accounts.recipient.key(), params.amount, &params.proof, params.index)?;
     Ok(())
 }
 
@@ -127,7 +136,11 @@ pub fn validate(ctx: &Context<Distribute>, params: &DistributeParams) -> Result<
 ///     2. Transfers the tokens to the recipient
 pub fn handler(ctx: Context<Distribute>, params: DistributeParams) -> Result<()> {
     let distribution_tree = &mut ctx.accounts.distribution_tree;
+
     distribution_tree.increment_number_distributed()?;
+
+    distribution_tree.set_claimed(params.index)?;
+
     ctx.accounts.transfer_to_recipient(params.amount)?;
     Ok(())
 }

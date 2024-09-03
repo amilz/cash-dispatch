@@ -9,7 +9,7 @@ describe("The Distributor Program", () => {
   const testEnv = new TestEnvironment();
 
   before('Prepare Test Enviroment', async () => {
-    await initEnviroment({ testEnv });
+    await initEnviroment({ testEnv, numPayments: 64 * 20 });
     await initIdlToChain();
   });
 
