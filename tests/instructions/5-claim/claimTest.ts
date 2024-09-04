@@ -1,33 +1,33 @@
 import { TestEnvironment } from "../../utils/environment/test-environment";
-import { Cancel, cancel } from "./cancel";
-import { initialize, Initialize } from "../1-initialize/initialize";
-import { distribute, Distribute } from "../2-distribute/distribute";
+import { Claim, claim } from "./claim";
+import { BN, web3 } from "@coral-xyz/anchor";
 import { getAccountByIndex } from "../../utils/merkle-tree";
-import { web3 } from "@coral-xyz/anchor";
 import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { assertInstructionWillFail } from "../helpers";
-
+import { MAX_COMPUTE_UNITS } from "../../utils/constants";
+import { initialize, Initialize } from "../1-initialize/initialize";
+import { airdropToMultiple } from "../../utils/solana-helpers";
 
 /**
- * CANCEL INSTRUCTION TESTS
+ * CLAIM INSTRUCTION TESTS
  * 
  * @param testEnv 
  * 
- * This test suite tests creates a new Distribution Tree (because the previous one should be depleted).
+ * This test suite tests initializes a new Distribution Tree
  * The test suite then:
- * 1. Cancels the Distribution Tree (verifying that the status is Cancelled, the token vault is empty, and the authority has received the remaining tokens)
- * 2. Verifies the Distribution Tree cannot distribute after canceling
  * 
  */
-export async function cancelTests(testEnv: TestEnvironment) {
+export async function claimTests(testEnv: TestEnvironment) {
     let index: number;
-    let cancelParams: Cancel;
-    let distributeParams: Distribute;
     let totalNumberRecipients: number;
+    let computeUnits: number | undefined;
+    let correctParams: Claim;
 
-    before('Set Cancel Params', async () => {
+    before('Set Distribute Params', async () => {
         // Create a New Tree for this test
-        await testEnv.newTree({ numPayments: 5, startOffset: -100 });
+        const numPayments = 20;
+
+        await testEnv.newTree({ numPayments, startOffset: -100 });
 
         // Initialize the new Distribution Tree PDA
         const initParms: Initialize = {
@@ -43,6 +43,7 @@ export async function cancelTests(testEnv: TestEnvironment) {
             mintDecimals: 6,
             startTs: testEnv.distributionStartTs,
             endTs: null,
+            allowClaims: true,
         };
         await initialize(testEnv, initParms);
 
@@ -53,47 +54,58 @@ export async function cancelTests(testEnv: TestEnvironment) {
         if (!paymentInfo) {
             throw new Error('No recipient found');
         }
-        const recipient = paymentInfo.keypair.publicKey;
 
-        // Set correct params for distribute
-        distributeParams = {
-            authority: testEnv.authority,
-            recipient,
+        // Claimaints will need SOL in order to pay for transaction fees
+        await airdropToMultiple(
+            [...testEnv.merkleDistributorInfo.payments.map(payment => payment.keypair.publicKey)],
+            testEnv.provider.connection,
+            web3.LAMPORTS_PER_SOL
+        );
+
+        let claimantKeypair = paymentInfo.keypair;
+        correctParams = {
+            claimant: claimantKeypair,
             distributionTreePda: testEnv.distributionTreePda,
             mint: testEnv.pyUsdMint,
             tokenVault: testEnv.tokenVault,
-            recipientTokenAccount: getAssociatedTokenAddressSync(
+            claimantTokenAccount: getAssociatedTokenAddressSync(
                 testEnv.pyUsdMint,
-                recipient,
+                claimantKeypair.publicKey,
                 false,
                 TOKEN_2022_PROGRAM_ID
             ),
-            amount: paymentInfo.amount,
-            proof: testEnv.balanceTree.getProof(index, recipient, paymentInfo.amount),
+            amount: new BN(paymentInfo.amount),
+            proof: testEnv.balanceTree.getProof(index, claimantKeypair.publicKey, paymentInfo.amount),
             batchId: testEnv.distributionUniqueId,
-            numberDistributedBefore: index
-        };
+            index // TBD  make sure this isn't index + 1
+        }
 
-        // Set correct params for cancel
-        cancelParams = {
-            authority: testEnv.authority,
-            distributionTreePda: testEnv.distributionTreePda,
-            mint: testEnv.pyUsdMint,
-            tokenVault: testEnv.tokenVault,
-            authorityTokenAccount: testEnv.tokenSource,
-            batchId: testEnv.distributionUniqueId
-        };
 
+        computeUnits = MAX_COMPUTE_UNITS;
     });
-    it('Cancels successfully', async () => {
-        await cancel(testEnv, cancelParams);
-    });
-    it('Cannot Distribute after Cancel', async () => {
+    it('Cannot claim with the wrong amount', async () => {
+        const incorrectParams: Claim = {
+            ...correctParams,
+            amount: new BN(999),
+        };
         await assertInstructionWillFail({
             testEnv,
-            params: distributeParams,
-            executeInstruction: distribute,
-            expectedAnchorError: "DistributionNotActive"
+            params: incorrectParams,
+            executeInstruction: claim,
+            expectedAnchorError: "InvalidProof"
         });
     });
+
+    it('Can claim', async () => {
+        await claim(testEnv, correctParams);
+    });
+    it('Cannot claim multiple times', async () => {
+        await assertInstructionWillFail({
+            testEnv,
+            params: correctParams,
+            executeInstruction: claim,
+            expectedAnchorError: "AlreadyClaimed"
+        });
+    });
+
 }

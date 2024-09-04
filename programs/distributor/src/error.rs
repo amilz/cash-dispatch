@@ -44,6 +44,7 @@ pub enum DistributionError {
     InvalidDistributionStatus,
     #[msg("Maximum bitmap size reached")]
     MaximumBitmapSizeReached,
-    // Other custom errors...
+    #[msg("Claims not allowed")]
+    ClaimsNotAllowed,
 }
 

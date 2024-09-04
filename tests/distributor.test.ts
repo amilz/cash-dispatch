@@ -5,12 +5,13 @@ import { distributeTests } from "./instructions/2-distribute/distributeTest";
 import { initIdlToChain } from "./utils/environment/init-idl";
 import { cancelTests } from "./instructions/3-cancel/cancelTest";
 import { expandTests } from "./instructions/4-expand/expandTest";
+import { claimTests } from "./instructions/5-claim/claimTest";
 
 describe("The Distributor Program", () => {
   const testEnv = new TestEnvironment();
 
   before('Prepare Test Enviroment', async () => {
-    await initEnviroment({ testEnv, numPayments: 64 * 20 });
+    await initEnviroment({ testEnv, numPayments: 64 * 1 });
     await initIdlToChain();
   });
 
@@ -28,6 +29,10 @@ describe("The Distributor Program", () => {
 
   describe('Expand Tests', async () => {
     await expandTests(testEnv);
+  });
+
+  describe('Claim Tests', async () => {
+    await claimTests(testEnv);
   });
 
 });

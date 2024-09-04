@@ -34,7 +34,7 @@ export async function distributeTests(testEnv: TestEnvironment) {
         if (!paymentInfo) {
             throw new Error('No recipient found');
         }
-        const recipient = new web3.PublicKey(paymentInfo.account);
+        const recipient = paymentInfo.keypair.publicKey;
 
         correctParams = {
             authority: testEnv.authority,
@@ -99,7 +99,7 @@ export async function distributeTests(testEnv: TestEnvironment) {
         if (!wrongPaymentInfo) {
             throw new Error('No recipient found');
         }
-        const wrongRecipient = new web3.PublicKey(wrongPaymentInfo.account);
+        const wrongRecipient = wrongPaymentInfo.keypair.publicKey;
         const wrongDestination = getAssociatedTokenAddressSync(
             testEnv.pyUsdMint,
             wrongRecipient,
@@ -152,7 +152,7 @@ export async function distributeTests(testEnv: TestEnvironment) {
         if (!paymentInfo) {
             throw new Error('No recipient found');
         }
-        const recipient = new web3.PublicKey(paymentInfo.account);
+        const recipient = paymentInfo.keypair.publicKey;
 
         const distributeParams: Distribute = {
             authority: testEnv.authority,
@@ -197,7 +197,7 @@ export async function distributeTests(testEnv: TestEnvironment) {
             if (!paymentInfo) {
                 throw new Error(`No payment found for index ${currentIndex}`);
             }
-            const recipient = new web3.PublicKey(paymentInfo.account);
+            const recipient = paymentInfo.keypair.publicKey;
 
             distributions.push({
                 authority: testEnv.authority,

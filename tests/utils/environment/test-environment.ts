@@ -46,7 +46,7 @@ export class TestEnvironment {
         } = params;
 
         let samplePayments: PaymentsImport = Array.from({ length: numPayments }, (_, i) => ({
-            address: Keypair.generate().publicKey.toBase58(),
+            address: Keypair.generate(),
             earnings: ((i + 1) * BASE_PAYMENT_AMOUNT).toString(),
         }));
 
@@ -54,7 +54,7 @@ export class TestEnvironment {
 
         this.balanceTree = new PaymentTree(
             samplePayments.map(({ address, earnings }, index) => ({
-                account: new PublicKey(address),
+                account: address,
                 amount: new anchor.BN(earnings),
             }))
         );

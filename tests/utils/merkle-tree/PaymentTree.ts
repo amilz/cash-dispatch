@@ -10,7 +10,7 @@ export class PaymentTree {
     constructor(payments: Payments) {
         this.tree = new MerkleTree(
             payments.map(({ account, amount }, index) =>
-                PaymentTree.toNode(index, account, amount)
+                PaymentTree.toNode(index, account.publicKey, amount)
             )
         );
     }

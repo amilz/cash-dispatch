@@ -60,7 +60,7 @@ export async function expandTests(testEnv: TestEnvironment) {
         if (!paymentInfo) {
             throw new Error('No recipient found');
         }
-        const recipient = new web3.PublicKey(paymentInfo.account);
+        const recipient = paymentInfo.keypair.publicKey;
 
         // Set correct params for distribute
         distributeParams = {

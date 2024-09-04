@@ -17,6 +17,7 @@ export interface Initialize {
     mintDecimals: number,
     startTs: number,
     endTs: number | null,
+    allowClaims?:boolean
 }
 
 export async function initialize(
@@ -26,6 +27,7 @@ export async function initialize(
     const initializeParams = {
         merkleRoot: Array.from(initialize.merkleRoot),
         batchId: initialize.batchId,
+        allowClaims: initialize.allowClaims ?? false,
         totalNumberRecipients: new BN(initialize.totalNumberRecipients),
         transferToVaultAmount: new BN(initialize.transferToVaultAmount),
         mintDecimals: initialize.mintDecimals,

@@ -64,6 +64,7 @@ pub struct Initialize<'info> {
 pub struct InitializeParams {
     pub merkle_root: [u8; 32],
     pub batch_id: String,
+    pub allow_claims: bool,
     pub total_number_recipients: u64,
     pub transfer_to_vault_amount: u64,
     pub mint_decimals: u8,
@@ -135,6 +136,7 @@ pub fn handler(ctx: Context<Initialize>, params: InitializeParams) -> Result<()>
         bump,
         *authority,
         params.batch_id,
+        params.allow_claims,
         params.merkle_root,
         ctx.accounts.mint.key(),
         ctx.accounts.token_vault.key(),

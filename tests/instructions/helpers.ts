@@ -67,6 +67,7 @@ export function calculateAccountSize(bitmapSize: number) {
         + 32 // authority
         + 4 + 20 // batch_id (4 bytes for length + max 20 bytes for string)
         + 1 // status (enum)
+        + 1 // allow_claims
         + 32 // merkle_root
         + 32 // mint
         + 32 // token_vault

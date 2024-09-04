@@ -23,6 +23,8 @@ pub struct DistributionTree {
     pub recipients_distributed_bitmap: Vec<u64>,
     /// The status of the distribution
     pub status: DistributionStatus,
+    /// Whether or not individual recipients can claim their tokens
+    pub allow_claims: bool,
     /// The 256-bit merkle root.
     pub merkle_root: [u8; 32],
     /// The token to be distributed.
@@ -48,6 +50,7 @@ impl DistributionTree {
             + 32 // authority
             + 4 + 20 // batch_id (4 bytes for length + max 20 bytes for string)
             + 1 // status (enum)
+            + 1 // allow_claims
             + 32 // merkle_root
             + 32 // mint
             + 32 // token_vault
@@ -66,6 +69,7 @@ impl DistributionTree {
         bump: u8,
         authority: Pubkey,
         batch_id: String,
+        allow_claims: bool,
         merkle_root: [u8; 32],
         mint: Pubkey,
         token_vault: Pubkey,
@@ -79,6 +83,7 @@ impl DistributionTree {
         self.authority = authority;
         self.batch_id = batch_id;
         self.status = DistributionStatus::Active;
+        self.allow_claims = allow_claims;
         self.merkle_root = merkle_root;
         self.mint = mint;
         self.token_vault = token_vault;
