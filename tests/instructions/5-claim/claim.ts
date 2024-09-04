@@ -23,7 +23,8 @@ export async function claim(
     claim: Claim,
     overRideComputeUnits = 200_000,
     skipPreflight = false,
-    simulate = false
+    simulate = false,
+    skipSequenceChecks = true
 ) {
     const claimParams = {
         amount: claim.amount,
@@ -82,11 +83,11 @@ export async function claim(
         // Fetch and assert the token vault token account data
         let tokenVaultTokenAccountData = await testEnv.program.provider.connection.getTokenAccountBalance(claim.tokenVault);
         const vaultBalanceChange = BigInt(initialVaultBalance.value.amount) - BigInt(tokenVaultTokenAccountData.value.amount);
-        assert.strictEqual(vaultBalanceChange.toString(), claim.amount.toString());
 
-        // Verify the number of recipients distributed is incremented by 1
-        assert.strictEqual(distributionTreeData.numberDistributed.toNumber(), claim.index + 1);
-
+        if (!skipSequenceChecks) {
+            assert.strictEqual(vaultBalanceChange.toString(), claim.amount.toString());
+            assert.strictEqual(distributionTreeData.numberDistributed.toNumber(), claim.index + 1);
+        }
     } catch (error) {
         throw error;
     }

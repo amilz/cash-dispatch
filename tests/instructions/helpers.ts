@@ -52,7 +52,7 @@ export function clearDistributionProgress() {
     process.stdout.write('\r');
 }
 
-export async function delay (ms: number) {
+export async function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -77,4 +77,30 @@ export function calculateAccountSize(bitmapSize: number) {
         + 8 // end_ts
         + 4 // recipients_distributed_bitmap length
         + (bitmapSize * 8);
+}
+
+export async function verifyTreeComplete(testEnv: TestEnvironment, totalNumberRecipients: number) {
+    // Fetch and assert the DistributionTree account data
+    let distributionTreeData = await testEnv.program.account.distributionTree.fetch(testEnv.distributionTreePda);
+    assert.strictEqual(distributionTreeData.numberDistributed.toNumber(), totalNumberRecipients);
+    assert.deepStrictEqual(distributionTreeData.status, { complete: {} });
+    distributionTreeData.recipientsDistributedBitmap.forEach((bitmap, index) => {
+        const isLastElement = index === distributionTreeData.recipientsDistributedBitmap.length - 1;
+        const expectedBits = isLastElement
+            ? totalNumberRecipients % 64 || 64
+            : 64;
+
+        const binaryString = bitmap.toString(2).padStart(64, '0');
+        const setbits = binaryString.split('1').length - 1;
+
+        assert.strictEqual(
+            setbits,
+            expectedBits,
+            `Bitmap element ${index} should have ${expectedBits} bits set, but has ${setbits}`
+        );
+    });
+
+    // Fetch and assert the token vault token account data
+    let tokenVaultTokenAccountData = await testEnv.program.provider.connection.getTokenAccountBalance(testEnv.tokenVault);
+    assert.strictEqual(tokenVaultTokenAccountData.value.amount, '0');
 }

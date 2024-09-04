@@ -4,7 +4,7 @@ import { Distribute, distribute } from "./distribute";
 import { BN, web3 } from "@coral-xyz/anchor";
 import { getAccountByIndex } from "../../utils/merkle-tree";
 import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
-import { assertInstructionWillFail, clearDistributionProgress, printDistributionProgress } from "../helpers";
+import { assertInstructionWillFail, clearDistributionProgress, printDistributionProgress, verifyTreeComplete } from "../helpers";
 import { MAX_COMPUTE_UNITS } from "../../utils/constants";
 
 /**
@@ -93,8 +93,8 @@ export async function distributeTests(testEnv: TestEnvironment) {
             expectedAnchorError: "InvalidProof"
         });
     });
-    it('Cannot distribute to another recipient in the same batch', async () => {
-        const wrongIndex = index + 1;
+    it('Cannot distribute with wrong index', async () => {
+        const wrongIndex = index + 1; // Use this to get Wrong Info
         const wrongPaymentInfo = getAccountByIndex(testEnv.merkleDistributorInfo, wrongIndex);
         if (!wrongPaymentInfo) {
             throw new Error('No recipient found');
@@ -113,6 +113,7 @@ export async function distributeTests(testEnv: TestEnvironment) {
             amount: wrongPaymentInfo.amount,
             recipientTokenAccount: wrongDestination,
             proof: testEnv.balanceTree.getProof(wrongIndex, wrongRecipient, wrongPaymentInfo.amount),
+            // numberDistributedBefore: index (this should lead to an invalid proof b/c index and wrong index don't match)
         };
         await assertInstructionWillFail({
             testEnv,
@@ -237,30 +238,7 @@ export async function distributeTests(testEnv: TestEnvironment) {
         }
 
         clearDistributionProgress();
-
-        // Fetch and assert the DistributionTree account data
-        let distributionTreeData = await testEnv.program.account.distributionTree.fetch(testEnv.distributionTreePda);
-        assert.strictEqual(distributionTreeData.numberDistributed.toNumber(), totalNumberRecipients);
-        assert.deepStrictEqual(distributionTreeData.status, { complete: {} });
-        distributionTreeData.recipientsDistributedBitmap.forEach((bitmap, index) => {
-            const isLastElement = index === distributionTreeData.recipientsDistributedBitmap.length - 1;
-            const expectedBits = isLastElement
-                ? totalNumberRecipients % 64 || 64
-                : 64;
-
-            const binaryString = bitmap.toString(2).padStart(64, '0');
-            const setbits = binaryString.split('1').length - 1;
-
-            assert.strictEqual(
-                setbits,
-                expectedBits,
-                `Bitmap element ${index} should have ${expectedBits} bits set, but has ${setbits}`
-            );
-        });
-
-        // Fetch and assert the token vault token account data
-        let tokenVaultTokenAccountData = await testEnv.program.provider.connection.getTokenAccountBalance(testEnv.tokenVault);
-        assert.strictEqual(tokenVaultTokenAccountData.value.amount, '0');
+        await verifyTreeComplete(testEnv, totalNumberRecipients);
     });
     it('Cannot pause a distribution that is not active', async () => {
         await assertInstructionWillFail({
