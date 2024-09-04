@@ -231,12 +231,22 @@ impl DistributionTree {
         .0
     }
 
-    pub fn pause(&mut self) {
+    pub fn pause(&mut self) -> Result<()> {
+        require!(
+            self.status == DistributionStatus::Active,
+            DistributionError::InvalidDistributionStatus
+        );
         self.status = DistributionStatus::Paused;
+        Ok(())
     }
 
-    pub fn resume(&mut self) {
+    pub fn resume(&mut self) -> Result<()> {
+        require!(
+            self.status == DistributionStatus::Paused,
+            DistributionError::InvalidDistributionStatus
+        );
         self.status = DistributionStatus::Active;
+        Ok(())
     }
 
     pub fn cancel(&mut self) {
@@ -253,8 +263,6 @@ pub enum DistributionStatus {
     InsufficientBitmapSpace,
     Active,
     Complete,
-    // Not implementing these statuses for now
-    // NotActive (e.g., space realloc required for larger tree bitmaps)
     Paused,
     Cancelled,
 }

@@ -40,15 +40,12 @@ pub mod distributor {
         instructions::cancel::handler(ctx, params)
     }
 
-    /* TODO: Add remaining instructions
-
-    pub fn pause_distributions(ctx: Context<PauseDistributions>) -> Result<()> {
-        instructions::pause_distributions::handler(ctx)
+    pub fn pause(ctx: Context<PauseResume>, params: PauseResumeParams) -> Result<()> {
+        instructions::pause_unpause::handle_pause(ctx, params)
     }
 
-    pub fn resume_distributions(ctx: Context<ResumeDistributions>) -> Result<()> {
-        instructions::resume_distributions::handler(ctx)
+    pub fn resume(ctx: Context<PauseResume>, params: PauseResumeParams) -> Result<()> {
+        instructions::pause_unpause::handle_resume(ctx, params)
     }
-    
-     */
+
 }

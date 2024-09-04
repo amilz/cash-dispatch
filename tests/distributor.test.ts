@@ -5,7 +5,8 @@ import { distributeTests } from "./instructions/2-distribute/distributeTest";
 import { initIdlToChain } from "./utils/environment/init-idl";
 import { cancelTests } from "./instructions/3-cancel/cancelTest";
 import { expandTests } from "./instructions/4-expand/expandTest";
-import { claimTests } from "./instructions/5-claim/claimTest";
+import { claimTests, claimsNotAllowedTests, claimsNotStartedTests } from "./instructions/5-claim/claimTest";
+import { pauseResumeTests } from "./instructions/6-pause/pauseResumeTests";
 
 describe("The Distributor Program", () => {
   const testEnv = new TestEnvironment();
@@ -33,6 +34,18 @@ describe("The Distributor Program", () => {
 
   describe('Claim Tests', async () => {
     await claimTests(testEnv);
+  });
+
+  describe('Claims Not Allowed Tests', async () => {
+    await claimsNotAllowedTests(testEnv);
+  });
+
+  describe('Claims Not Started Tests', async () => {
+    await claimsNotStartedTests(testEnv);
+  });
+
+  describe('Pause/Resume Tests', async () => {
+    await pauseResumeTests(testEnv);
   });
 
 });
