@@ -1,6 +1,7 @@
 import { assert } from "chai";
 import { TestEnvironment } from "../utils/environment/test-environment";
 import { AnchorError } from "@coral-xyz/anchor";
+import { BITMAP_ARRAY_STEP } from "../utils/constants";
 
 interface AssertInstructionWillFailParams<T> {
     testEnv: TestEnvironment;
@@ -53,4 +54,26 @@ export function clearDistributionProgress() {
 
 export async function delay (ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export function calculateFutureBitmapSize(currentSize: number, numberRecipients: number) {
+    return Math.min(currentSize + BITMAP_ARRAY_STEP, Math.ceil(numberRecipients / 64));
+}
+
+export function calculateAccountSize(bitmapSize: number) {
+    return 8 // discriminator
+        + 1 // bump
+        + 8 // version
+        + 32 // authority
+        + 4 + 20 // batch_id (4 bytes for length + max 20 bytes for string)
+        + 1 // status (enum)
+        + 32 // merkle_root
+        + 32 // mint
+        + 32 // token_vault
+        + 8 // total_number_recipients
+        + 8 // number_distributed
+        + 8 // start_ts
+        + 8 // end_ts
+        + 4 // recipients_distributed_bitmap length
+        + (bitmapSize * 8);
 }

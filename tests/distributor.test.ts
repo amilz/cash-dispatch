@@ -4,6 +4,7 @@ import { initializeTests } from "./instructions/1-initialize/inializeTests";
 import { distributeTests } from "./instructions/2-distribute/distributeTest";
 import { initIdlToChain } from "./utils/environment/init-idl";
 import { cancelTests } from "./instructions/3-cancel/cancelTest";
+import { expandTests } from "./instructions/4-expand/expandTest";
 
 describe("The Distributor Program", () => {
   const testEnv = new TestEnvironment();
@@ -23,6 +24,10 @@ describe("The Distributor Program", () => {
 
   describe('Cancel Tests', async () => {
     await cancelTests(testEnv);
+  });
+
+  describe('Expand Tests', async () => {
+    await expandTests(testEnv);
   });
 
 });

@@ -23,3 +23,5 @@ pub const PYUSD_MINT: &'static str = "PyuSdRak7SLogVeLcj8tgAk1JCJvHpfZ9R5keq25Bk
 pub const BATCH_ID_MINIMUM_LENGTH: usize = 8;
 
 pub const BATCH_ID_MAXIMUM_LENGTH: usize = 15;
+
+pub const BITMAP_ARRAY_STEP: usize = 1000;

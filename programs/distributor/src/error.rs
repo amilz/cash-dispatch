@@ -40,6 +40,10 @@ pub enum DistributionError {
     IndexOutOfBounds,
     #[msg("Already claimed")]
     AlreadyClaimed,
+    #[msg("Invalid Distribution Status")]
+    InvalidDistributionStatus,
+    #[msg("Maximum bitmap size reached")]
+    MaximumBitmapSizeReached,
     // Other custom errors...
 }
 

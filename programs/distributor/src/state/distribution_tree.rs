@@ -1,6 +1,6 @@
 use anchor_lang::{prelude::*, solana_program::keccak::hashv};
 
-use crate::{error::DistributionError, utils::verify, CURRENT_VERSION};
+use crate::{error::DistributionError, utils::verify, BITMAP_ARRAY_STEP, CURRENT_VERSION};
 
 #[account]
 #[derive(InitSpace)]
@@ -19,7 +19,7 @@ pub struct DistributionTree {
     /// Bitmap for tracking which recipients have been distributed
     /// Each bit represents a recipient, where 1 means distributed and 0 means not distributed
     /// Initialize with 1,000  u64 elements (1000 * 64 = 64,000 bits/recipients)
-    #[max_len(1000)]
+    #[max_len(BITMAP_ARRAY_STEP)]
     pub recipients_distributed_bitmap: Vec<u64>,
     /// The status of the distribution
     pub status: DistributionStatus,
@@ -40,6 +40,26 @@ pub struct DistributionTree {
 }
 
 impl DistributionTree {
+    pub fn calculate_account_size(&self) -> usize {
+        // Start with the size of all fixed fields
+        let size = 8 // discriminator
+            + 1 // bump
+            + 8 // version
+            + 32 // authority
+            + 4 + 20 // batch_id (4 bytes for length + max 20 bytes for string)
+            + 1 // status (enum)
+            + 32 // merkle_root
+            + 32 // mint
+            + 32 // token_vault
+            + 8 // total_number_recipients
+            + 8 // number_distributed
+            + 8 // start_ts
+            + 8 // end_ts
+            + 4 // recipients_distributed_bitmap length
+            + self.recipients_distributed_bitmap.len() * 8; // each u64 is 8 bytes
+
+        size
+    }
     /// Initializes the Distribution Tree
     pub fn initialize(
         &mut self,
@@ -70,12 +90,60 @@ impl DistributionTree {
         Ok(())
     }
 
+    fn calculate_required_vec_size(&self) -> usize {
+        ((self.total_number_recipients + 63) / 64) as usize
+    }
+
     /// Initializes the recipients_distributed_bitmap bitmap
     fn initialize_recipients_distributed_bitmap(&mut self) -> Result<()> {
-        let vec_size = ((self.total_number_recipients + 63) / 64) as usize;
-        require!(vec_size <= 1000, DistributionError::TooManyRecipients);
+        let vec_size = self.calculate_required_vec_size();
 
-        self.recipients_distributed_bitmap = vec![0u64; vec_size];
+        if vec_size <= BITMAP_ARRAY_STEP {
+            self.recipients_distributed_bitmap = vec![0u64; vec_size];
+            self.status = DistributionStatus::Active;
+        } else {
+            self.recipients_distributed_bitmap = vec![0u64; BITMAP_ARRAY_STEP];
+            self.status = DistributionStatus::InsufficientBitmapSpace;
+            let additional_reallocs_required = (vec_size - BITMAP_ARRAY_STEP) / BITMAP_ARRAY_STEP;
+            msg!(
+                "Insufficient bitmap space. Reallocating {} times",
+                additional_reallocs_required
+            );
+        }
+
+        Ok(())
+    }
+
+    pub fn calculate_expansion_required(&self) -> usize {
+        let current_size = self.recipients_distributed_bitmap.len();
+        let required_size = self.calculate_required_vec_size();
+        let remaining_size = required_size.saturating_sub(current_size);
+        remaining_size.min(BITMAP_ARRAY_STEP)
+    }
+
+    /// Expands the recipients_distributed_bitmap bitmap
+    pub fn expand_recipients_distributed_bitmap(&mut self) -> Result<()> {
+        require!(
+            self.status == DistributionStatus::InsufficientBitmapSpace,
+            DistributionError::InvalidDistributionStatus
+        );
+        let required_size = self.calculate_required_vec_size();
+        let expansion_size = self.calculate_expansion_required();
+
+        self.recipients_distributed_bitmap
+            .extend(vec![0u64; expansion_size]);
+
+        if self.recipients_distributed_bitmap.len() >= required_size {
+            self.status = DistributionStatus::Active;
+        } else {
+            let additional_reallocs_required =
+                (required_size - self.recipients_distributed_bitmap.len()) / BITMAP_ARRAY_STEP;
+            msg!(
+                "Insufficient bitmap space. Reallocating {} times",
+                additional_reallocs_required
+            );
+        }
+
         Ok(())
     }
 
@@ -177,6 +245,7 @@ impl DistributionTree {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, InitSpace)]
 pub enum DistributionStatus {
+    InsufficientBitmapSpace,
     Active,
     Complete,
     // Not implementing these statuses for now

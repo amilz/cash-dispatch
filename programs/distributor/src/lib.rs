@@ -20,6 +20,12 @@ pub mod distributor {
     pub fn initialize(ctx: Context<Initialize>, params: InitializeParams) -> Result<()> {
         instructions::initialize::handler(ctx, params)
     }
+
+    #[access_control(instructions::expand_distribution_tree::validate(&ctx))]
+    pub fn expand_distribution_tree(ctx: Context<ExpandDistributionTree>, params: ExpandParams) -> Result<()> {
+        instructions::expand_distribution_tree::handler(ctx, params)
+    }
+    
     #[access_control(instructions::distribute::validate(&ctx, &params))]
     pub fn distribute(ctx: Context<Distribute>, params: DistributeParams) -> Result<()> {
         instructions::distribute::handler(ctx, params)
