@@ -28,7 +28,7 @@ export async function claimTests(testEnv: TestEnvironment) {
     let correctParams: Claim;
     let wrongRecipient: web3.Keypair;
 
-    before('Set Distribute Params', async () => {
+    before('Set Claim Params', async () => {
         // Create a New Tree for this test
         const numPayments = 20;
         wrongRecipient = web3.Keypair.generate();
@@ -84,7 +84,6 @@ export async function claimTests(testEnv: TestEnvironment) {
             batchId: testEnv.distributionUniqueId,
             index
         }
-
 
         computeUnits = MAX_COMPUTE_UNITS;
     });
@@ -191,4 +190,163 @@ export async function claimTests(testEnv: TestEnvironment) {
         });
     });
 
+}
+
+
+export async function claimsNotAllowedTests(testEnv: TestEnvironment) {
+    let index: number;
+    let indices: { index: number, claimed: boolean }[] = [];
+    let totalNumberRecipients: number;
+    let computeUnits: number | undefined;
+    let correctParams: Claim;
+    let wrongRecipient: web3.Keypair;
+
+    before('Set Claim Params', async () => {
+        // Create a New Tree for this test
+        const numPayments = 20;
+        wrongRecipient = web3.Keypair.generate();
+
+        await testEnv.newTree({ numPayments, startOffset: -100 });
+        totalNumberRecipients = testEnv.merkleDistributorInfo.payments.length;
+        // Initialize the new Distribution Tree PDA
+        const initParms: Initialize = {
+            authority: testEnv.authority,
+            distributionTreePda: testEnv.distributionTreePda,
+            mint: testEnv.pyUsdMint,
+            tokenSource: testEnv.tokenSource,
+            tokenVault: testEnv.tokenVault,
+            merkleRoot: testEnv.balanceTree.getRoot(),
+            batchId: testEnv.distributionUniqueId,
+            totalNumberRecipients,
+            transferToVaultAmount: Object.values(testEnv.merkleDistributorInfo.payments).reduce((sum, payment) => sum + payment.amount.toNumber(), 0),
+            mintDecimals: 6,
+            startTs: testEnv.distributionStartTs,
+            endTs: null,
+            allowClaims: false,
+        };
+        await initialize(testEnv, initParms);
+
+        index = 0;
+        indices = Array.from({ length: numPayments }, (_, i) => ({ index: i, claimed: false }));
+        const paymentInfo = getAccountByIndex(testEnv.merkleDistributorInfo, index);
+        if (!paymentInfo) {
+            throw new Error('No recipient found');
+        }
+
+        // Claimaints will need SOL in order to pay for transaction fees
+        await airdropToMultiple(
+            [...testEnv.merkleDistributorInfo.payments.map(payment => payment.keypair.publicKey), wrongRecipient.publicKey],
+            testEnv.provider.connection,
+            web3.LAMPORTS_PER_SOL
+        );
+
+        let claimantKeypair = paymentInfo.keypair;
+        correctParams = {
+            claimant: claimantKeypair,
+            distributionTreePda: testEnv.distributionTreePda,
+            mint: testEnv.pyUsdMint,
+            tokenVault: testEnv.tokenVault,
+            claimantTokenAccount: getAssociatedTokenAddressSync(
+                testEnv.pyUsdMint,
+                claimantKeypair.publicKey,
+                false,
+                TOKEN_2022_PROGRAM_ID
+            ),
+            amount: new BN(paymentInfo.amount),
+            proof: testEnv.balanceTree.getProof(index, claimantKeypair.publicKey, paymentInfo.amount),
+            batchId: testEnv.distributionUniqueId,
+            index
+        }
+
+        computeUnits = MAX_COMPUTE_UNITS;
+    });
+
+    it('Cannot claim when claims are not allowed', async () => {
+        await assertInstructionWillFail({
+            testEnv,
+            params: correctParams,
+            executeInstruction: claim,
+            expectedAnchorError: "ClaimsNotAllowed"
+        });
+    });
+}
+
+export async function claimsNotStartedTests(testEnv: TestEnvironment) {
+    let index: number;
+    let indices: { index: number, claimed: boolean }[] = [];
+    let totalNumberRecipients: number;
+    let computeUnits: number | undefined;
+    let correctParams: Claim;
+    let wrongRecipient: web3.Keypair;
+
+    before('Set Claim Params', async () => {
+        // Create a New Tree for this test
+        const numPayments = 20;
+        wrongRecipient = web3.Keypair.generate();
+
+        const OFFSET_24_HOURS = 24 * 60 * 60;
+
+        await testEnv.newTree({ numPayments, startOffset: OFFSET_24_HOURS });
+        totalNumberRecipients = testEnv.merkleDistributorInfo.payments.length;
+        // Initialize the new Distribution Tree PDA
+        const initParms: Initialize = {
+            authority: testEnv.authority,
+            distributionTreePda: testEnv.distributionTreePda,
+            mint: testEnv.pyUsdMint,
+            tokenSource: testEnv.tokenSource,
+            tokenVault: testEnv.tokenVault,
+            merkleRoot: testEnv.balanceTree.getRoot(),
+            batchId: testEnv.distributionUniqueId,
+            totalNumberRecipients,
+            transferToVaultAmount: Object.values(testEnv.merkleDistributorInfo.payments).reduce((sum, payment) => sum + payment.amount.toNumber(), 0),
+            mintDecimals: 6,
+            startTs: testEnv.distributionStartTs,
+            endTs: null,
+            allowClaims: true,
+        };
+        await initialize(testEnv, initParms);
+
+        index = 0;
+        indices = Array.from({ length: numPayments }, (_, i) => ({ index: i, claimed: false }));
+        const paymentInfo = getAccountByIndex(testEnv.merkleDistributorInfo, index);
+        if (!paymentInfo) {
+            throw new Error('No recipient found');
+        }
+
+        // Claimaints will need SOL in order to pay for transaction fees
+        await airdropToMultiple(
+            [...testEnv.merkleDistributorInfo.payments.map(payment => payment.keypair.publicKey), wrongRecipient.publicKey],
+            testEnv.provider.connection,
+            web3.LAMPORTS_PER_SOL
+        );
+
+        let claimantKeypair = paymentInfo.keypair;
+        correctParams = {
+            claimant: claimantKeypair,
+            distributionTreePda: testEnv.distributionTreePda,
+            mint: testEnv.pyUsdMint,
+            tokenVault: testEnv.tokenVault,
+            claimantTokenAccount: getAssociatedTokenAddressSync(
+                testEnv.pyUsdMint,
+                claimantKeypair.publicKey,
+                false,
+                TOKEN_2022_PROGRAM_ID
+            ),
+            amount: new BN(paymentInfo.amount),
+            proof: testEnv.balanceTree.getProof(index, claimantKeypair.publicKey, paymentInfo.amount),
+            batchId: testEnv.distributionUniqueId,
+            index
+        }
+
+        computeUnits = MAX_COMPUTE_UNITS;
+    });
+
+    it('Cannot claim when claims have not started', async () => {
+        await assertInstructionWillFail({
+            testEnv,
+            params: correctParams,
+            executeInstruction: claim,
+            expectedAnchorError: "DistributionNotStarted"
+        });
+    });
 }
