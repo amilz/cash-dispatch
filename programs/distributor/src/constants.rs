@@ -25,3 +25,7 @@ pub const BATCH_ID_MINIMUM_LENGTH: usize = 8;
 pub const BATCH_ID_MAXIMUM_LENGTH: usize = 15;
 
 pub const BITMAP_ARRAY_STEP: usize = 1000;
+
+// Default to localnet for testing
+#[cfg(any(feature = "localnet", not(any(feature = "mainnet", feature = "devnet"))))]
+pub const REQUIRE_CIVIC_PASS: bool = false;

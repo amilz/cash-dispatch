@@ -46,5 +46,7 @@ pub enum DistributionError {
     MaximumBitmapSizeReached,
     #[msg("Claims not allowed")]
     ClaimsNotAllowed,
+    #[msg("Invalid Gateway Token")]
+    InvalidGatewayToken,
 }
 

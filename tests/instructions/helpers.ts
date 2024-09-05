@@ -60,7 +60,7 @@ export function calculateFutureBitmapSize(currentSize: number, numberRecipients:
     return Math.min(currentSize + BITMAP_ARRAY_STEP, Math.ceil(numberRecipients / 64));
 }
 
-export function calculateAccountSize(bitmapSize: number) {
+export function calculateAccountSize(bitmapSize: number, gatekeeperNetwork = false) {
     return 8 // discriminator
         + 1 // bump
         + 8 // version
@@ -76,7 +76,9 @@ export function calculateAccountSize(bitmapSize: number) {
         + 8 // start_ts
         + 8 // end_ts
         + 4 // recipients_distributed_bitmap length
-        + (bitmapSize * 8);
+        + (bitmapSize * 8)
+        + 1 // Option for gatekeeper network
+        + (gatekeeperNetwork ? 32 : 0);
 }
 
 export async function verifyTreeComplete(testEnv: TestEnvironment, totalNumberRecipients: number) {

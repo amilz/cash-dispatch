@@ -911,6 +911,7 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
+ "solana-gateway",
 ]
 
 [[package]]
@@ -1887,6 +1888,19 @@ dependencies = [
  "quote",
  "rustc_version",
  "syn 2.0.76",
+]
+
+[[package]]
+name = "solana-gateway"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a11e5afc65ef1845214987e9724aa6406916d4a2d67ed66e4583cb75368bb645"
+dependencies = [
+ "borsh 1.5.1",
+ "num-derive",
+ "num-traits",
+ "solana-program",
+ "thiserror",
 ]
 
 [[package]]

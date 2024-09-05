@@ -17,7 +17,8 @@ export interface Initialize {
     mintDecimals: number,
     startTs: number,
     endTs: number | null,
-    allowClaims?:boolean
+    allowClaims?:boolean,
+    gatekeeperNetwork?: PublicKey,
 }
 
 export async function initialize(
@@ -33,6 +34,7 @@ export async function initialize(
         mintDecimals: initialize.mintDecimals,
         startTs: new BN(initialize.startTs),
         endTs: initialize.endTs ? new BN(initialize.endTs) : null,
+        gatekeeperNetwork: initialize.gatekeeperNetwork ?? null,
     };
 
     const accounts = {

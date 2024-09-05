@@ -39,6 +39,8 @@ pub struct DistributionTree {
     pub start_ts: i64,
     /// Time when distribution is locked (Unix Timestamp)
     pub end_ts: i64,
+    /// (optional) Gateway Network
+    pub gatekeeper_network: Option<Pubkey>,
 }
 
 impl DistributionTree {
@@ -59,7 +61,9 @@ impl DistributionTree {
             + 8 // start_ts
             + 8 // end_ts
             + 4 // recipients_distributed_bitmap length
-            + self.recipients_distributed_bitmap.len() * 8; // each u64 is 8 bytes
+            + self.recipients_distributed_bitmap.len() * 8 // each u64 is 8 bytes
+            + 1 // Option for gatekeeper network
+            + self.gatekeeper_network.map_or(0, |_| 32);
 
         size
     }
@@ -76,6 +80,7 @@ impl DistributionTree {
         total_number_recipients: u64,
         start_ts: i64,
         end_ts: Option<i64>,
+        gatekeeper_network: Option<Pubkey>,
     ) -> Result<()> {
         let end_ts = end_ts.unwrap_or(i64::MAX);
         self.bump = bump;
@@ -92,6 +97,7 @@ impl DistributionTree {
         self.start_ts = start_ts;
         self.end_ts = end_ts;
         self.initialize_recipients_distributed_bitmap()?;
+        self.gatekeeper_network = gatekeeper_network;
         Ok(())
     }
 

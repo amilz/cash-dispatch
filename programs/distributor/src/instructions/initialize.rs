@@ -70,6 +70,7 @@ pub struct InitializeParams {
     pub mint_decimals: u8,
     pub start_ts: i64,
     pub end_ts: Option<i64>,
+    pub gatekeeper_network: Option<Pubkey>,
 }
 
 impl<'info> Initialize<'info> {
@@ -143,6 +144,7 @@ pub fn handler(ctx: Context<Initialize>, params: InitializeParams) -> Result<()>
         params.total_number_recipients,
         params.start_ts,
         params.end_ts,
+        params.gatekeeper_network,
     )?;
 
     ctx.accounts

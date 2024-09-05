@@ -1,6 +1,6 @@
 use crate::{
     constants::DISTRIBUTION_TREE_SEED, error::DistributionError, state::DistributionTree,
-    DistributionStatus,
+    utils::check_gateway_token, DistributionStatus, REQUIRE_CIVIC_PASS,
 };
 use anchor_lang::prelude::*;
 use anchor_spl::{
@@ -57,6 +57,10 @@ pub struct Claim<'info> {
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
+
+    /// Optional Civic Pass
+    /// CHECK: Verified by the solana-gateway program
+    pub gateway_token: Option<UncheckedAccount<'info>>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -125,7 +129,31 @@ pub fn validate(ctx: &Context<Claim>, params: &ClaimParams) -> Result<()> {
         DistributionError::ClaimsNotAllowed
     );
 
-    distribution_tree.verify_proof(ctx.accounts.claimant.key(), params.amount, &params.proof, params.index)?;
+    distribution_tree.verify_proof(
+        ctx.accounts.claimant.key(),
+        params.amount,
+        &params.proof,
+        params.index,
+    )?;
+
+    let gateway_check_required =
+        REQUIRE_CIVIC_PASS && ctx.accounts.distribution_tree.gatekeeper_network.is_some();
+
+    if gateway_check_required {
+        check_gateway_token(
+            Some(
+                &ctx.accounts
+                    .gateway_token
+                    .as_ref()
+                    .unwrap()
+                    .to_account_info(),
+            ),
+            &&ctx.accounts.claimant.to_account_info(),
+            &ctx.accounts.distribution_tree.gatekeeper_network.unwrap(),
+            None,
+        )?;
+    }
+
     Ok(())
 }
 

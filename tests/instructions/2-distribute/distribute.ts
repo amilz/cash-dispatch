@@ -17,6 +17,7 @@ export interface Distribute {
     proof: Buffer[],
     batchId: string,
     numberDistributedBefore: number,
+    gatewayToken?: PublicKey,
 }
 
 export async function distribute(
@@ -46,6 +47,7 @@ export async function distribute(
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         tokenProgram: TOKEN_2022_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
+        gatewayToken: distribute.gatewayToken ?? null,
     }
 
     if (simulate) {

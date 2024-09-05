@@ -16,6 +16,7 @@ export interface Claim {
     proof: Buffer[],
     batchId: string,
     index: number,
+    gatewayToken?: PublicKey,
 }
 
 export async function claim(
@@ -42,6 +43,7 @@ export async function claim(
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         tokenProgram: TOKEN_2022_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
+        gatewayToken: claim.gatewayToken ?? null,
     }
 
     if (simulate) {

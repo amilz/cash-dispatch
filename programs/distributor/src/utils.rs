@@ -1,3 +1,8 @@
+use anchor_lang::prelude::*;
+use solana_gateway::{Gateway, VerificationOptions};
+
+use crate::error::DistributionError;
+
 /// Source: https://github.com/saber-hq/merkle-distributor/blob/master/programs/merkle-distributor/src/merkle_proof.rs
 /// These functions deal with verification of Merkle trees (hash trees).
 /// Direct port of https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.4.0/contracts/cryptography/MerkleProof.sol
@@ -13,12 +18,35 @@ pub fn verify(proof: &Vec<[u8; 32]>, root: [u8; 32], leaf: [u8; 32]) -> bool {
             // Hash(current computed hash + current element of the proof)
             computed_hash =
                 anchor_lang::solana_program::keccak::hashv(&[&computed_hash, proof_element]).0;
-                // Hash(current element of the proof + current computed hash)
-            } else {
+            // Hash(current element of the proof + current computed hash)
+        } else {
             computed_hash =
                 anchor_lang::solana_program::keccak::hashv(&[proof_element, &computed_hash]).0;
         }
     }
     // Check if the computed hash (root) is equal to the provided root
     computed_hash == root
+}
+
+pub fn check_gateway_token(
+    gateway_token: Option<&AccountInfo>,
+    recipient: &AccountInfo,
+    gatekeeper_network: &Pubkey,
+    options: Option<VerificationOptions>,
+) -> Result<()> {
+    require!(
+        gateway_token.is_some(),
+        DistributionError::InvalidGatewayToken
+    );
+    Gateway::verify_gateway_token_account_info(
+        gateway_token.unwrap(),
+        &recipient.key(),
+        &gatekeeper_network,
+        options
+    ).map_err(|_| {
+        msg!("Gateway token verification failed");
+        DistributionError::InvalidGatewayToken
+    })?;
+
+    Ok(())
 }

@@ -1,3 +1,4 @@
+import { web3 } from "@coral-xyz/anchor";
 
 
 const PYUSD_MINT = {
@@ -17,3 +18,5 @@ export const NUM_SAMPLE_BALANCES = 10;
 export const BASE_PAYMENT_AMOUNT = 1_000_000; // $1 with 6 decimals
 export const MAX_COMPUTE_UNITS = 1_400_000;
 export const BITMAP_ARRAY_STEP = 1000;
+
+export const CIVIC_PROGRAM_ID = new web3.PublicKey('gatem74V238djXdzWnJf94Wo1DcnuGkfijbf3AuBhfs');
