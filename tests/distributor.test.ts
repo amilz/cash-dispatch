@@ -8,6 +8,7 @@ import { expandTests } from "./instructions/4-expand/expandTest";
 import { claimTests, claimsNotAllowedTests, claimsNotStartedTests } from "./instructions/5-claim/claimTest";
 import { pauseResumeTests } from "./instructions/6-pause/pauseResumeTests";
 import { gatekeeperTests } from "./instructions/7-gatekeeper/gatekeeperTests";
+import { reclaimTests } from "./instructions/8-reclaim/reclaimTests";
 
 
 describe("The Distributor Program", () => {
@@ -53,4 +54,9 @@ describe("The Distributor Program", () => {
   describe('Gatekeeper Tests', async () => {
     await gatekeeperTests(testEnv);
   });
+
+  describe('Reclaim & Close Tests', async () => {
+    await reclaimTests(testEnv);
+  });
+
 });

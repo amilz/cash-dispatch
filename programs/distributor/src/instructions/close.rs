@@ -36,7 +36,7 @@ pub fn validate(ctx: &Context<Close>, params: &CloseParams) -> Result<()> {
 
     require!(
         ctx.accounts.distribution_tree.status == DistributionStatus::Complete || ctx.accounts.distribution_tree.status == DistributionStatus::Cancelled,
-        DistributionError::InvalidDistributionStatus
+        DistributionError::DistributionNotComplete
     );
 
     Ok(())

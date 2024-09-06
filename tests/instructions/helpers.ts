@@ -1,7 +1,10 @@
 import { assert } from "chai";
 import { TestEnvironment } from "../utils/environment/test-environment";
-import { AnchorError } from "@coral-xyz/anchor";
+import { AnchorError, web3 } from "@coral-xyz/anchor";
 import { BITMAP_ARRAY_STEP } from "../utils/constants";
+import { initialize, Initialize } from "./1-initialize/initialize";
+import { distribute, Distribute } from "./2-distribute/distribute";
+import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 
 interface AssertInstructionWillFailParams<T> {
     testEnv: TestEnvironment;
@@ -105,4 +108,76 @@ export async function verifyTreeComplete(testEnv: TestEnvironment, totalNumberRe
     // Fetch and assert the token vault token account data
     let tokenVaultTokenAccountData = await testEnv.program.provider.connection.getTokenAccountBalance(testEnv.tokenVault);
     assert.strictEqual(tokenVaultTokenAccountData.value.amount, '0');
+}
+
+interface CreateNewDistributionTreeParams {
+    testEnv: TestEnvironment,
+    numPayments?: number,
+    startOffset?: number,
+    allowClaims?: boolean,
+    gatekeeperNetwork?: web3.PublicKey,
+}
+
+export async function createNewDistributionTree({
+    testEnv,
+    numPayments,
+    startOffset,
+    allowClaims,
+    gatekeeperNetwork
+}: CreateNewDistributionTreeParams) {
+    await testEnv.newTree({ numPayments, startOffset });
+    let initializeParams: Initialize = {
+        authority: testEnv.authority,
+        distributionTreePda: testEnv.distributionTreePda,
+        mint: testEnv.pyUsdMint,
+        tokenSource: testEnv.tokenSource,
+        tokenVault: testEnv.tokenVault,
+        merkleRoot: testEnv.balanceTree.getRoot(),
+        batchId: testEnv.distributionUniqueId,
+        totalNumberRecipients: Object.keys(testEnv.merkleDistributorInfo.payments).length,
+        transferToVaultAmount: Object.values(testEnv.merkleDistributorInfo.payments).reduce((sum, payment) => sum + payment.amount.toNumber(), 0),
+        mintDecimals: 6,
+        startTs: testEnv.distributionStartTs,
+        endTs: null,
+        gatekeeperNetwork,
+        allowClaims
+    };
+    await initialize(testEnv, initializeParams)
+}
+
+interface DistributeAllPaymentsParams {
+    testEnv: TestEnvironment,
+    totalNumberRecipients: number,
+}
+
+export async function distributeAllPayments({
+    testEnv,
+    totalNumberRecipients
+}: DistributeAllPaymentsParams) {
+    const allPayments = testEnv.merkleDistributorInfo.payments;
+
+    const distributionPromises = allPayments.map((paymentInfo, index) => {
+        const recipient = paymentInfo.keypair.publicKey;
+        const distribution: Distribute = {
+            authority: testEnv.authority,
+            recipient,
+            distributionTreePda: testEnv.distributionTreePda,
+            mint: testEnv.pyUsdMint,
+            tokenVault: testEnv.tokenVault,
+            recipientTokenAccount: getAssociatedTokenAddressSync(
+                testEnv.pyUsdMint,
+                recipient,
+                false,
+                TOKEN_2022_PROGRAM_ID
+            ),
+            amount: paymentInfo.amount,
+            proof: testEnv.balanceTree.getProof(index, recipient, paymentInfo.amount),
+            batchId: testEnv.distributionUniqueId,
+            numberDistributedBefore: index,
+        }
+
+        return distribute(testEnv, distribution);
+    });
+    await Promise.all(distributionPromises);
+    await verifyTreeComplete(testEnv, totalNumberRecipients);
 }

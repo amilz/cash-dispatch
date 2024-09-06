@@ -65,7 +65,6 @@ impl DistributionTree {
             + self.recipients_distributed_bitmap.len() * 8 // each u64 is 8 bytes
             + 1 // Option for gatekeeper network
             + self.gatekeeper_network.map_or(0, |_| 32);
-
         size
     }
 
@@ -175,7 +174,7 @@ impl DistributionTree {
             self.status == DistributionStatus::Complete || self.status == DistributionStatus::Cancelled,
             DistributionError::DistributionNotComplete
         );
-        self.recipients_distributed_bitmap = vec![0u64; BITMAP_ARRAY_STEP];
+        self.recipients_distributed_bitmap = vec![0u64; 0];
         Ok(())
     }
 
