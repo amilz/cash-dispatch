@@ -5,6 +5,7 @@ import * as web3 from '@solana/web3.js';
 import { airdropToMultiple, makeTokenMint } from '../solana-helpers';
 import { INITIAL_SOL_BALANCE, INITIAL_TOKEN_BALANCE, NUM_SAMPLE_BALANCES, PY_USD_SECRET } from '../constants';
 import { createAssociatedTokenAccountIdempotent, mintTo, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
+import { addGateKeeper, setupCivcPass } from '../civic/setup';
 
 interface InitEnvironmentParams {
     testEnv: TestEnvironment;
@@ -26,11 +27,21 @@ export async function initEnviroment({
         testEnv.provider = provider;
         testEnv.program = anchor.workspace.Distributor as anchor.Program<Distributor>;
 
+        testEnv.civicConfig = setupCivcPass(provider.connection);
+
         await airdropToMultiple(
-            [testEnv.authority.publicKey, testEnv.pyUsdMintAuthorityKeypair.publicKey, testEnv.wrongAuthority.publicKey],
+            [
+                testEnv.authority.publicKey,
+                testEnv.pyUsdMintAuthorityKeypair.publicKey,
+                testEnv.wrongAuthority.publicKey,
+                testEnv.civicConfig.gatekeeper.publicKey,
+                testEnv.civicConfig.gatekeeperNetwork.publicKey,
+            ],
             provider.connection,
             INITIAL_SOL_BALANCE * web3.LAMPORTS_PER_SOL
         );
+
+        await addGateKeeper(testEnv);
 
         if (!skipInitMint) {
             await makeTokenMint({

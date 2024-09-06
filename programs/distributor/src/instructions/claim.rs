@@ -1,6 +1,6 @@
 use crate::{
     constants::DISTRIBUTION_TREE_SEED, error::DistributionError, state::DistributionTree,
-    utils::check_gateway_token, DistributionStatus, REQUIRE_CIVIC_PASS,
+    utils::check_gateway_token, DistributionStatus,
 };
 use anchor_lang::prelude::*;
 use anchor_spl::{
@@ -137,19 +137,13 @@ pub fn validate(ctx: &Context<Claim>, params: &ClaimParams) -> Result<()> {
     )?;
 
     let gateway_check_required =
-        REQUIRE_CIVIC_PASS && ctx.accounts.distribution_tree.gatekeeper_network.is_some();
+        ctx.accounts.distribution_tree.gatekeeper_network.is_some();
 
     if gateway_check_required {
         check_gateway_token(
-            Some(
-                &ctx.accounts
-                    .gateway_token
-                    .as_ref()
-                    .unwrap()
-                    .to_account_info(),
-            ),
+            ctx.accounts.gateway_token.as_ref().map(|token| token.to_account_info()).as_ref(),
             &&ctx.accounts.claimant.to_account_info(),
-            &ctx.accounts.distribution_tree.gatekeeper_network.unwrap(),
+            &ctx.accounts.distribution_tree.gatekeeper_network.ok_or(DistributionError::MissingGatekeeperNetwork)?,
             None,
         )?;
     }

@@ -6,6 +6,8 @@
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",
+    "@identity.com/solana-gatekeeper-lib": "^6.1.1-alpha.3",
+    "@identity.com/solana-gateway-ts": "^0.12.0",
     "@solana/spl-token": "^0.4.8",
     "@solana/spl-token-metadata": "^0.1.5",
     "js-sha3": "^0.9.3"

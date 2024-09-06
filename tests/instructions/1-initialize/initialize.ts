@@ -17,7 +17,7 @@ export interface Initialize {
     mintDecimals: number,
     startTs: number,
     endTs: number | null,
-    allowClaims?:boolean,
+    allowClaims?: boolean,
     gatekeeperNetwork?: PublicKey,
 }
 
@@ -60,6 +60,9 @@ export async function initialize(
         assert.strictEqual(distributionTreeData.tokenVault.toString(), initialize.tokenVault.toString());
         assert.strictEqual(distributionTreeData.totalNumberRecipients.toNumber(), initialize.totalNumberRecipients);
         assert.strictEqual(distributionTreeData.startTs.toNumber(), initialize.startTs);
+        if (initialize.gatekeeperNetwork) {
+            assert.strictEqual(distributionTreeData.gatekeeperNetwork?.toString(), initialize.gatekeeperNetwork.toString());
+        }
 
     } catch (error) {
         throw error;

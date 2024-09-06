@@ -4,6 +4,7 @@ import { PaymentTree, MerkleDistributorInfo, PaymentsImport, parsePaymentMap } f
 import { PublicKey, Keypair } from '@solana/web3.js';
 import { BASE_PAYMENT_AMOUNT, NUM_SAMPLE_BALANCES, PY_USD_AUTH_SECRET, PY_USD_SECRET } from '../constants';
 import { getDistributionTreePDA, getTokenVaultAddress } from '../pdas';
+import { CivicConfig } from '../civic/types';
 
 export class TestEnvironment {
     provider!: anchor.AnchorProvider;
@@ -24,6 +25,8 @@ export class TestEnvironment {
     distributionStartTs!: number;
     distributionUniqueId!: string;
 
+    civicConfig!: CivicConfig;
+  
     constructor() {
         this.authority = Keypair.generate();
         this.wrongAuthority = Keypair.generate();

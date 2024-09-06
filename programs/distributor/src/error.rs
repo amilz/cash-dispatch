@@ -48,5 +48,7 @@ pub enum DistributionError {
     ClaimsNotAllowed,
     #[msg("Invalid Gateway Token")]
     InvalidGatewayToken,
+    #[msg("Missing Gateway Network")]
+    MissingGatekeeperNetwork,
 }
 
