@@ -42,6 +42,8 @@ pub enum DistributionError {
     AlreadyClaimed,
     #[msg("Invalid Distribution Status")]
     InvalidDistributionStatus,
+    #[msg("Distribution is not yet complete or cancelled")]
+    DistributionNotComplete,
     #[msg("Maximum bitmap size reached")]
     MaximumBitmapSizeReached,
     #[msg("Claims not allowed")]
@@ -50,5 +52,7 @@ pub enum DistributionError {
     InvalidGatewayToken,
     #[msg("Missing Gateway Network")]
     MissingGatekeeperNetwork,
+    #[msg("Must acknowledge that closing the Distribution Tree is irreversible")]
+    MustAcknowledgeIrreversible,
 }
 

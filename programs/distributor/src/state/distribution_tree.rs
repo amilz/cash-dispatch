@@ -44,6 +44,7 @@ pub struct DistributionTree {
 }
 
 impl DistributionTree {
+    /// Calculates the account size of the Distribution Tree based on current state
     pub fn calculate_account_size(&self) -> usize {
         // Start with the size of all fixed fields
         let size = 8 // discriminator
@@ -67,6 +68,12 @@ impl DistributionTree {
 
         size
     }
+
+    /// Calculates the space required for resetting the recipients_distributed_bitmap
+    pub fn calculate_minimum_account_size(&self) -> usize {
+        self.calculate_account_size() - (self.recipients_distributed_bitmap.len() * 8)
+    }
+
     /// Initializes the Distribution Tree
     pub fn initialize(
         &mut self,
@@ -101,6 +108,7 @@ impl DistributionTree {
         Ok(())
     }
 
+    /// Calculates the required size of the recipients_distributed_bitmap vector
     fn calculate_required_vec_size(&self) -> usize {
         ((self.total_number_recipients + 63) / 64) as usize
     }
@@ -125,6 +133,7 @@ impl DistributionTree {
         Ok(())
     }
 
+    /// Calculates how much bigger to increase the recipients_distributed_bitmap vector
     pub fn calculate_expansion_required(&self) -> usize {
         let current_size = self.recipients_distributed_bitmap.len();
         let required_size = self.calculate_required_vec_size();
@@ -155,6 +164,18 @@ impl DistributionTree {
             );
         }
 
+        Ok(())
+    }
+
+    /// For complete distributions, clears the recipients_distributed_bitmap
+    /// This can be done safely because "Complete" distributions mean that all recipients have been distributed
+    /// Meaning that we can verify the distribution details by checking the root of the Merkle tree
+    pub fn clear_recipients_distributed_bitmap(&mut self) -> Result<()> {
+        require!(
+            self.status == DistributionStatus::Complete || self.status == DistributionStatus::Cancelled,
+            DistributionError::DistributionNotComplete
+        );
+        self.recipients_distributed_bitmap = vec![0u64; BITMAP_ARRAY_STEP];
         Ok(())
     }
 

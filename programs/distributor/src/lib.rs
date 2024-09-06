@@ -22,10 +22,13 @@ pub mod distributor {
     }
 
     #[access_control(instructions::expand_distribution_tree::validate(&ctx))]
-    pub fn expand_distribution_tree(ctx: Context<ExpandDistributionTree>, params: ExpandParams) -> Result<()> {
+    pub fn expand_distribution_tree(
+        ctx: Context<ExpandDistributionTree>,
+        params: ExpandParams,
+    ) -> Result<()> {
         instructions::expand_distribution_tree::handler(ctx, params)
     }
-    
+
     #[access_control(instructions::distribute::validate(&ctx, &params))]
     pub fn distribute(ctx: Context<Distribute>, params: DistributeParams) -> Result<()> {
         instructions::distribute::handler(ctx, params)
@@ -48,4 +51,12 @@ pub mod distributor {
         instructions::pause_unpause::handle_resume(ctx, params)
     }
 
+    pub fn reclaim(ctx: Context<Reclaim>, params: ReclaimParams) -> Result<()> {
+        instructions::reclaim::handler(ctx, params)
+    }
+
+    #[access_control(instructions::close::validate(&ctx, &params))]
+    pub fn close(ctx: Context<Close>, params: CloseParams) -> Result<()> {
+        instructions::close::handler(ctx, params)
+    }
 }
