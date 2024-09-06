@@ -19,6 +19,10 @@ pub const PYUSD_MINT: &'static str = "CXk2AMBfi3TwaEL2468s6zP8xq9NxTXjp9gjMgzeUy
 #[constant]
 pub const PYUSD_MINT: &'static str = "PyuSdRak7SLogVeLcj8tgAk1JCJvHpfZ9R5keq25BkS";
 
+#[constant]
+pub const FEES_WALLET: &'static str = "FEESqUnJ5LEZgNpChDAbq2bDf5na3HTECAZhLUBMof3z";
+
+pub const MAX_FEE_AMOUNT: u64 = 5_000_000_000; // $5,000
 
 pub const BATCH_ID_MINIMUM_LENGTH: usize = 8;
 

@@ -1,7 +1,8 @@
 use std::str::FromStr;
 
 use crate::{
-    constants::PYUSD_MINT, error::DistributionError, state::DistributionTree, BATCH_ID_MAXIMUM_LENGTH, BATCH_ID_MINIMUM_LENGTH, DISTRIBUTION_TREE_SEED
+    constants::PYUSD_MINT, error::DistributionError, state::DistributionTree, utils::calculate_fee,
+    BATCH_ID_MAXIMUM_LENGTH, BATCH_ID_MINIMUM_LENGTH, DISTRIBUTION_TREE_SEED, FEES_WALLET,
 };
 use anchor_lang::prelude::*;
 use anchor_spl::{
@@ -54,6 +55,15 @@ pub struct Initialize<'info> {
     )]
     pub token_vault: InterfaceAccount<'info, TokenAccount>,
 
+    /// Fees Wallet Token Account
+    #[account(
+        mut,
+        associated_token::mint = mint,
+        associated_token::authority = Pubkey::from_str(&FEES_WALLET).unwrap(),
+        associated_token::token_program = token_program
+    )]
+    pub fees_token_account: InterfaceAccount<'info, TokenAccount>,
+
     /// System & Token programs
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Interface<'info, TokenInterface>,
@@ -82,6 +92,22 @@ impl<'info> Initialize<'info> {
                     from: self.token_source.to_account_info(),
                     mint: self.mint.to_account_info(),
                     to: self.token_vault.to_account_info(),
+                    authority: self.authority.to_account_info(),
+                },
+            ),
+            amount,
+            decimals,
+        )
+    }
+
+    fn pay_fees(&self, amount: u64, decimals: u8) -> Result<()> {
+        transfer_checked(
+            CpiContext::new(
+                self.token_program.to_account_info(),
+                TransferChecked {
+                    from: self.token_source.to_account_info(),
+                    mint: self.mint.to_account_info(),
+                    to: self.fees_token_account.to_account_info(),
                     authority: self.authority.to_account_info(),
                 },
             ),
@@ -120,8 +146,16 @@ pub fn validate(_ctx: &Context<Initialize>, params: &InitializeParams) -> Result
         DistributionError::ZeroTransferAmount
     );
 
-    require_gte!(BATCH_ID_MAXIMUM_LENGTH, params.batch_id.len(), DistributionError::BatchIdTooLong);
-    require_gte!(params.batch_id.len(), BATCH_ID_MINIMUM_LENGTH, DistributionError::BatchIdTooShort);
+    require_gte!(
+        BATCH_ID_MAXIMUM_LENGTH,
+        params.batch_id.len(),
+        DistributionError::BatchIdTooLong
+    );
+    require_gte!(
+        params.batch_id.len(),
+        BATCH_ID_MINIMUM_LENGTH,
+        DistributionError::BatchIdTooShort
+    );
     Ok(())
 }
 
@@ -149,6 +183,12 @@ pub fn handler(ctx: Context<Initialize>, params: InitializeParams) -> Result<()>
 
     ctx.accounts
         .transfer_to_vault(params.transfer_to_vault_amount, params.mint_decimals)?;
+
+    let fee_amount = calculate_fee(params.transfer_to_vault_amount)?;
+
+    if fee_amount > 0 {
+        ctx.accounts.pay_fees(fee_amount, params.mint_decimals)?;
+    }
 
     msg!(
         "Distribution tree initialized for {} recipients",

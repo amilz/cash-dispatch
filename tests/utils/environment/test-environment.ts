@@ -2,7 +2,7 @@ import * as anchor from '@coral-xyz/anchor';
 import { Distributor } from "../../../target/types/distributor";
 import { PaymentTree, MerkleDistributorInfo, PaymentsImport, parsePaymentMap } from '../merkle-tree';
 import { PublicKey, Keypair } from '@solana/web3.js';
-import { BASE_PAYMENT_AMOUNT, NUM_SAMPLE_BALANCES, PY_USD_AUTH_SECRET, PY_USD_SECRET } from '../constants';
+import { BASE_PAYMENT_AMOUNT, FEES_WALLET_SECRET, NUM_SAMPLE_BALANCES, PY_USD_AUTH_SECRET, PY_USD_SECRET } from '../constants';
 import { getDistributionTreePDA, getTokenVaultAddress } from '../pdas';
 import { CivicConfig } from '../civic/types';
 
@@ -12,6 +12,8 @@ export class TestEnvironment {
 
     pyUsdMint: PublicKey;
     pyUsdMintAuthorityKeypair: Keypair;
+
+    feesWallet: Keypair;
 
     authority: Keypair;
     wrongAuthority: Keypair;
@@ -32,6 +34,7 @@ export class TestEnvironment {
         this.wrongAuthority = Keypair.generate();
         this.pyUsdMintAuthorityKeypair = Keypair.fromSecretKey(new Uint8Array(PY_USD_AUTH_SECRET));
         this.pyUsdMint = Keypair.fromSecretKey(new Uint8Array(PY_USD_SECRET)).publicKey;
+        this.feesWallet = Keypair.fromSecretKey(new Uint8Array(FEES_WALLET_SECRET));
     }
 
     async cleanup(): Promise<void> {

@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use solana_gateway::{Gateway, VerificationOptions};
-
 use crate::error::DistributionError;
+use crate::constants::MAX_FEE_AMOUNT;
 
 /// Source: https://github.com/saber-hq/merkle-distributor/blob/master/programs/merkle-distributor/src/merkle_proof.rs
 /// These functions deal with verification of Merkle trees (hash trees).
@@ -42,11 +42,68 @@ pub fn check_gateway_token(
         gateway_token.unwrap(),
         &recipient.key(),
         &gatekeeper_network,
-        options
-    ).map_err(|_| {
+        options,
+    )
+    .map_err(|_| {
         msg!("Gateway token verification failed");
         DistributionError::InvalidGatewayToken
     })?;
 
     Ok(())
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum FeeTier {
+    Free,
+    Tier1,
+    Tier2,
+    Tier3,
+    Tier4,
+}
+
+impl FeeTier {
+    pub fn get_fee_bps(&self) -> u64 {
+        match self {
+            FeeTier::Free => 0,
+            FeeTier::Tier1 => 10,
+            FeeTier::Tier2 => 5,
+            FeeTier::Tier3 => 2,
+            FeeTier::Tier4 => 1,
+        }
+    }
+
+    pub fn get_threshold(&self) -> u64 {
+        match self {
+            FeeTier::Free => 0,
+            FeeTier::Tier1 => 10_000_000_000,   // $10,000
+            FeeTier::Tier2 => 100_000_000_000,  // $100,000
+            FeeTier::Tier3 => 1_000_000_000_000, // $1,000,000
+            FeeTier::Tier4 => 10_000_000_000_000, // $10,000,000
+        }
+    }
+}
+
+pub fn calculate_fee(amount: u64) -> Result<u64> {
+    let fee_tier = get_fee_tier(amount);
+    let fee_bps = fee_tier.get_fee_bps();
+
+    let fee_amount = amount
+        .checked_mul(fee_bps)
+        .ok_or(ProgramError::ArithmeticOverflow)?
+        .checked_div(10_000)
+        .ok_or(ProgramError::ArithmeticOverflow)?;
+
+    Ok(fee_amount.min(MAX_FEE_AMOUNT))
+}
+
+fn get_fee_tier(amount: u64) -> FeeTier {
+    [
+        FeeTier::Tier4,
+        FeeTier::Tier3,
+        FeeTier::Tier2,
+        FeeTier::Tier1,
+    ]
+    .into_iter()
+    .find(|tier| amount >= tier.get_threshold())
+    .unwrap_or(FeeTier::Free)
 }

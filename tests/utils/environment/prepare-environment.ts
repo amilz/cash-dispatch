@@ -36,6 +36,7 @@ export async function initEnviroment({
                 testEnv.wrongAuthority.publicKey,
                 testEnv.civicConfig.gatekeeper.publicKey,
                 testEnv.civicConfig.gatekeeperNetwork.publicKey,
+                testEnv.feesWallet.publicKey,
             ],
             provider.connection,
             INITIAL_SOL_BALANCE * web3.LAMPORTS_PER_SOL
@@ -55,14 +56,26 @@ export async function initEnviroment({
             });
         }
 
-        testEnv.tokenSource = await createAssociatedTokenAccountIdempotent(
-            provider.connection,
-            testEnv.authority,
-            testEnv.pyUsdMint,
-            testEnv.authority.publicKey,
-            { commitment: 'processed', skipPreflight: true },
-            TOKEN_2022_PROGRAM_ID
-        );
+
+        [testEnv.tokenSource] = await Promise.all([
+            createAssociatedTokenAccountIdempotent(
+                provider.connection,
+                testEnv.authority,
+                testEnv.pyUsdMint,
+                testEnv.authority.publicKey,
+                { commitment: 'processed', skipPreflight: true },
+                TOKEN_2022_PROGRAM_ID
+            ),
+            createAssociatedTokenAccountIdempotent(
+                provider.connection,
+                testEnv.feesWallet,
+                testEnv.pyUsdMint,
+                testEnv.feesWallet.publicKey,
+                { commitment: 'processed', skipPreflight: true },
+                TOKEN_2022_PROGRAM_ID
+            ),
+        ]);
+
 
         await mintTo(
             testEnv.provider.connection,

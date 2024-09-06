@@ -1,6 +1,6 @@
 import { TestEnvironment } from "../../utils/environment/test-environment";
 import { PublicKey, Keypair, SystemProgram } from '@solana/web3.js';
-import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { BN } from '@coral-xyz/anchor';
 import { assert } from 'chai';
 
@@ -43,6 +43,7 @@ export async function initialize(
         mint: initialize.mint,
         tokenSource: initialize.tokenSource,
         tokenVault: initialize.tokenVault,
+        feesTokenAccount: getAssociatedTokenAddressSync(initialize.mint, testEnv.feesWallet.publicKey, false, TOKEN_2022_PROGRAM_ID),
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         tokenProgram: TOKEN_2022_PROGRAM_ID,
         systemProgram: SystemProgram.programId,

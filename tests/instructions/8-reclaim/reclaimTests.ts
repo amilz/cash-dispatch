@@ -52,7 +52,7 @@ export async function reclaimTests(testEnv: TestEnvironment) {
     });
 
     describe('Closing a tree without reclaiming', () => {
-        before('Initializes a new Distribution Tree', async () => {
+        before('Initializes and pays out a new Distribution Tree', async () => {
             await createNewDistributionTree({ testEnv, numPayments: totalNumberRecipients });
             await distributeAllPayments({ testEnv, totalNumberRecipients });
         });
