@@ -1,6 +1,6 @@
 import { TestEnvironment } from "../../utils/environment/test-environment";
 import { BN, web3 } from "@coral-xyz/anchor";
-import { assertInstructionWillFail, verifyTreeComplete } from "../helpers";
+import { assertInstructionWillFail, createNewDistributionTree, verifyTreeComplete } from "../helpers";
 import { initialize, Initialize } from "../1-initialize/initialize";
 import { distribute, Distribute } from "../2-distribute/distribute";
 import { getAccountByIndex } from "../../utils/merkle-tree";
@@ -24,38 +24,23 @@ import { airdropToMultiple } from "../../utils/solana-helpers";
  * 
  */
 export async function gatekeeperTests(testEnv: TestEnvironment) {
-    let initializeParams: Initialize;
     let distributeParams: Distribute;
     let claimParams: Claim;
     let distributeIndex = 0;
     let claimIndex = 1;
-    let totalNumberRecipients: number;
     let distributionRecipient: web3.PublicKey;
     let claimantKeypair: web3.Keypair;
 
-    before('Set Initialize Params', async () => {
-        // Create a New Tree for this test
-        await testEnv.newTree();
-
-        totalNumberRecipients = Object.keys(testEnv.merkleDistributorInfo.payments).length;
-
-        initializeParams = {
-            authority: testEnv.authority,
-            distributionTreePda: testEnv.distributionTreePda,
-            mint: testEnv.pyUsdMint,
-            tokenSource: testEnv.tokenSource,
-            tokenVault: testEnv.tokenVault,
-            merkleRoot: testEnv.balanceTree.getRoot(),
-            batchId: testEnv.distributionUniqueId,
-            totalNumberRecipients,
-            transferToVaultAmount: Object.values(testEnv.merkleDistributorInfo.payments).reduce((sum, payment) => sum + payment.amount.toNumber(), 0),
-            mintDecimals: 6,
-            startTs: testEnv.distributionStartTs,
-            endTs: null,
+    before('Initializes a new Distribution Tree with Gatekeeper Network', async () => {
+        await createNewDistributionTree({
+            testEnv,
             gatekeeperNetwork: testEnv.civicConfig.gatekeeperNetwork.publicKey,
             allowClaims: true
-        };
+        });
+    });
 
+    before('Setup claims and distribution ', async () => {
+        // Create a New Tree for this test
         const distributePaymentInfo = getAccountByIndex(testEnv.merkleDistributorInfo, distributeIndex);
         if (!distributePaymentInfo) {
             throw new Error('No recipient found');
@@ -108,10 +93,6 @@ export async function gatekeeperTests(testEnv: TestEnvironment) {
         }
 
     });
-
-    it('Initializes successfully with Gatekeeper Network', async () => {
-        await initialize(testEnv, initializeParams);
-    });
     it('Cannot distribute to recipient without a Gateway Token', async () => {
         await assertInstructionWillFail({
             testEnv,
@@ -137,7 +118,7 @@ export async function gatekeeperTests(testEnv: TestEnvironment) {
         const gatewayToken = await gatewayAuthorizeAccount({ testEnv, account: claimantKeypair.publicKey });
         claimParams.gatewayToken = gatewayToken.publicKey;
         await claim(testEnv, claimParams);
-    });    
+    });
     it('Authorizes and distributes tokens to remaining accounts', async () => {
         let processedIndices = [distributeIndex, claimIndex];
         const remainingPayments = testEnv.merkleDistributorInfo.payments.filter((_, paymentIndex) => !processedIndices.includes(paymentIndex));
@@ -176,6 +157,6 @@ export async function gatekeeperTests(testEnv: TestEnvironment) {
             return distribute(testEnv, thisDistribution);
         });
         await Promise.all(distributionPromises);
-        await verifyTreeComplete(testEnv, totalNumberRecipients);
+        await verifyTreeComplete(testEnv, Object.keys(testEnv.merkleDistributorInfo.payments).length);
     });
 }

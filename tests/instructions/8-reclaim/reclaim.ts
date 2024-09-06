@@ -1,15 +1,18 @@
 import { TestEnvironment } from "../../utils/environment/test-environment";
 import { web3 } from "@coral-xyz/anchor";
-import { calculateAccountSize, calculateFutureBitmapSize } from "../helpers";
+import { calculateAccountSize } from "../helpers";
 import { assert } from "chai";
 
-
-
-export interface Close {
-    acknowledgeIrreversible: boolean
+export interface Reclaim {
+    overRideAuthority?: web3.Keypair
 }
 
-export async function reclaim(testEnv: TestEnvironment) {
+export interface Close {
+    acknowledgeIrreversible: boolean,
+    overRideAuthority?: web3.Keypair
+}
+
+export async function reclaim(testEnv: TestEnvironment, { overRideAuthority }: Reclaim) {
     try {
         let initialAccountInfo = await testEnv.program.provider.connection.getAccountInfo(testEnv.distributionTreePda);
         let initialAuthorityInfo = await testEnv.program.provider.connection.getAccountInfo(testEnv.authority.publicKey);
@@ -17,15 +20,15 @@ export async function reclaim(testEnv: TestEnvironment) {
             throw new Error("Initial account info not found");
         }
         const initialRent = await testEnv.program.provider.connection.getMinimumBalanceForRentExemption(initialAccountInfo.data.length);
-
+        const authorityKey = overRideAuthority ? overRideAuthority : testEnv.authority;
         await testEnv.program.methods
             .reclaim({ batchId: testEnv.distributionUniqueId })
             .accounts({
-                authority: testEnv.authority.publicKey,
+                authority: authorityKey.publicKey,
                 distributionTree: testEnv.distributionTreePda,
                 systemProgram: web3.SystemProgram.programId,
             })
-            .signers([testEnv.authority])
+            .signers([authorityKey])
             .rpc();
 
         // Fetch updated DistributionTree data and account info
@@ -61,7 +64,7 @@ export async function reclaim(testEnv: TestEnvironment) {
 }
 
 
-export async function close(testEnv: TestEnvironment, { acknowledgeIrreversible }: Close) {
+export async function close(testEnv: TestEnvironment, { acknowledgeIrreversible, overRideAuthority }: Close) {
     try {
         let initialAccountInfo = await testEnv.program.provider.connection.getAccountInfo(testEnv.distributionTreePda);
         let initialAuthorityInfo = await testEnv.program.provider.connection.getAccountInfo(testEnv.authority.publicKey);
@@ -69,15 +72,16 @@ export async function close(testEnv: TestEnvironment, { acknowledgeIrreversible 
             throw new Error("Initial account info not found");
         }
         const initialRent = await testEnv.program.provider.connection.getMinimumBalanceForRentExemption(initialAccountInfo.data.length);
+        const authorityKey = overRideAuthority ? overRideAuthority : testEnv.authority;
 
         await testEnv.program.methods
             .close({ batchId: testEnv.distributionUniqueId, acknowledgeIrreversible })
             .accounts({
-                authority: testEnv.authority.publicKey,
+                authority: authorityKey.publicKey,
                 distributionTree: testEnv.distributionTreePda,
                 systemProgram: web3.SystemProgram.programId,
             })
-            .signers([testEnv.authority])
+            .signers([authorityKey])
             .rpc();
 
         // Assert that tree is no longer active

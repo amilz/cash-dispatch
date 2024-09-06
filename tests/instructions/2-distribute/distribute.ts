@@ -26,8 +26,6 @@ export async function distribute(
     overRideComputeUnits = 200_000,
     skipPreflight = false,
     simulate = false,
-    // Foregoing vault balance checks and number of recipients distributed checks when doing batch distributions
-    // This is because the tests are run in parallel and the vault balance and number of recipients distributed checks are not deterministic
     skipSequenceChecks = true
 ) {
     const distributeParams = {
@@ -88,6 +86,8 @@ export async function distribute(
         const recipientBalanceChange = BigInt(recipientTokenAccountData.value.amount) - BigInt(initialRecipientBalance.value.amount);
         assert.strictEqual(recipientBalanceChange.toString(), distribute.amount.toString());
 
+        // When running in parallel, the tests are run in parallel and the vault balance and number of recipients distributed checks are not deterministic
+        // Instead we run verification after all the distributions have been completed
         if (!skipSequenceChecks) {
             // Fetch and assert the token vault token account data
             let tokenVaultTokenAccountData = await testEnv.program.provider.connection.getTokenAccountBalance(distribute.tokenVault);
