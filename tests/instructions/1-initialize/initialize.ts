@@ -70,3 +70,38 @@ export async function initialize(
     }
 
 }
+
+interface CreateNewDistributionTreeParams {
+    testEnv: TestEnvironment,
+    numPayments?: number,
+    startOffset?: number,
+    allowClaims?: boolean,
+    gatekeeperNetwork?: PublicKey,
+}
+
+export async function createNewDistributionTree({
+    testEnv,
+    numPayments,
+    startOffset,
+    allowClaims,
+    gatekeeperNetwork
+}: CreateNewDistributionTreeParams) {
+    await testEnv.newTree({ numPayments, startOffset });
+    let initializeParams: Initialize = {
+        authority: testEnv.authority,
+        distributionTreePda: testEnv.distributionTreePda,
+        mint: testEnv.pyUsdMint,
+        tokenSource: testEnv.tokenSource,
+        tokenVault: testEnv.tokenVault,
+        merkleRoot: testEnv.balanceTree.getRoot(),
+        batchId: testEnv.distributionUniqueId,
+        totalNumberRecipients: Object.keys(testEnv.merkleDistributorInfo.payments).length,
+        transferToVaultAmount: Object.values(testEnv.merkleDistributorInfo.payments).reduce((sum, payment) => sum + payment.amount.toNumber(), 0),
+        mintDecimals: 6,
+        startTs: testEnv.distributionStartTs,
+        endTs: null,
+        gatekeeperNetwork,
+        allowClaims
+    };
+    await initialize(testEnv, initializeParams)
+}

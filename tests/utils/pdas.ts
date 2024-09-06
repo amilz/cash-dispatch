@@ -36,3 +36,18 @@ export function getTokenVaultAddress({
         TOKEN_2022_PROGRAM_ID
     );
 }
+
+export function getUserTokenAccountAddress({
+    mint,
+    recipient
+}: {
+    mint: PublicKey,
+    recipient: PublicKey
+}): PublicKey {
+    return getAssociatedTokenAddressSync(
+        mint,
+        recipient,
+        false,
+        TOKEN_2022_PROGRAM_ID
+    )
+}

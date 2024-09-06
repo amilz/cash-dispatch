@@ -5,6 +5,8 @@ import { BN, web3 } from '@coral-xyz/anchor';
 import { assert } from 'chai';
 import { getSimulationComputeUnits } from "../../utils/solana-helpers";
 import { isBitSet } from "../../utils/merkle-tree";
+import { getUserTokenAccountAddress } from "../../utils/pdas";
+import { verifyTreeComplete } from "../helpers";
 
 export interface Distribute {
     authority: Keypair,
@@ -101,7 +103,40 @@ export async function distribute(
     } catch (error) {
         throw error;
     }
-
 }
 
 
+interface DistributeAllPaymentsParams {
+    testEnv: TestEnvironment,
+    totalNumberRecipients: number,
+}
+
+export async function distributeAllPayments({
+    testEnv,
+    totalNumberRecipients
+}: DistributeAllPaymentsParams) {
+    const allPayments = testEnv.merkleDistributorInfo.payments;
+
+    const distributionPromises = allPayments.map((paymentInfo, index) => {
+        const recipient = paymentInfo.keypair.publicKey;
+        const distribution: Distribute = {
+            authority: testEnv.authority,
+            recipient,
+            distributionTreePda: testEnv.distributionTreePda,
+            mint: testEnv.pyUsdMint,
+            tokenVault: testEnv.tokenVault,
+            recipientTokenAccount: getUserTokenAccountAddress({
+                recipient,
+                mint: testEnv.pyUsdMint
+            }),
+            amount: paymentInfo.amount,
+            proof: testEnv.balanceTree.getProof(index, recipient, paymentInfo.amount),
+            batchId: testEnv.distributionUniqueId,
+            numberDistributedBefore: index,
+        }
+
+        return distribute(testEnv, distribution);
+    });
+    await Promise.all(distributionPromises);
+    await verifyTreeComplete(testEnv, totalNumberRecipients);
+}

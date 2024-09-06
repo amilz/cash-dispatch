@@ -3,8 +3,10 @@ import { PublicKey, Keypair, SystemProgram } from '@solana/web3.js';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { BN, web3 } from '@coral-xyz/anchor';
 import { assert } from 'chai';
-import { getSimulationComputeUnits } from "../../utils/solana-helpers";
-import { isBitSet } from "../../utils/merkle-tree";
+import { airdropToMultiple, getSimulationComputeUnits } from "../../utils/solana-helpers";
+import { getAccountByIndex, isBitSet } from "../../utils/merkle-tree";
+import { getUserTokenAccountAddress } from "../../utils/pdas";
+import { verifyTreeComplete } from "../helpers";
 
 export interface Claim {
     claimant: Keypair,
@@ -93,4 +95,101 @@ export async function claim(
     } catch (error) {
         throw error;
     }
+}
+
+interface CreateClaimParams {
+    testEnv: TestEnvironment,
+    index: number,
+    incluceAidrop?: boolean
+}
+interface CreateClaimResponse {
+    index: number,
+    correctParams: Claim,
+    claimantKeypair: web3.Keypair
+}
+
+export async function createClaimParams({
+    testEnv,
+    index,
+    incluceAidrop = true
+}: CreateClaimParams): Promise<CreateClaimResponse> {
+    index = 0;
+    const paymentInfo = getAccountByIndex(testEnv.merkleDistributorInfo, index);
+    if (!paymentInfo) {
+        throw new Error('No recipient found');
+    }
+
+    if (incluceAidrop) {
+        await airdropToMultiple(
+            [...testEnv.merkleDistributorInfo.payments.map(payment => payment.keypair.publicKey)],
+            testEnv.provider.connection,
+            web3.LAMPORTS_PER_SOL
+        );
+    }
+    let claimantKeypair = paymentInfo.keypair;
+    let claimParams: Claim = {
+        claimant: claimantKeypair,
+        distributionTreePda: testEnv.distributionTreePda,
+        mint: testEnv.pyUsdMint,
+        tokenVault: testEnv.tokenVault,
+        claimantTokenAccount: getUserTokenAccountAddress({
+            recipient: claimantKeypair.publicKey,
+            mint: testEnv.pyUsdMint
+        }),
+        amount: new BN(paymentInfo.amount),
+        proof: testEnv.balanceTree.getProof(index, claimantKeypair.publicKey, paymentInfo.amount),
+        batchId: testEnv.distributionUniqueId,
+        index
+    }
+    return {
+        index,
+        correctParams: claimParams,
+        claimantKeypair
+    }
+};
+
+
+interface ClaimAllPaymentsParams {
+    testEnv: TestEnvironment,
+    includeAirdrop?: boolean
+    skipInices?: number[]
+}
+
+export async function claimAllPayments({
+    testEnv,
+    includeAirdrop = false,
+    skipInices = []
+}: ClaimAllPaymentsParams) {
+    if (includeAirdrop) {
+        await airdropToMultiple(
+            [...testEnv.merkleDistributorInfo.payments.map(payment => payment.keypair.publicKey)],
+            testEnv.provider.connection,
+            web3.LAMPORTS_PER_SOL
+        );
+    }
+    let allPayments = testEnv.merkleDistributorInfo.payments;
+
+    const claimPromises = allPayments.map(async (paymentInfo, index) => {
+        if (skipInices.includes(index)) {
+            return null;
+        }
+        const claimantKey = paymentInfo.keypair;
+        const claimDetails: Claim = {
+            claimant: claimantKey,
+            distributionTreePda: testEnv.distributionTreePda,
+            mint: testEnv.pyUsdMint,
+            tokenVault: testEnv.tokenVault,
+            claimantTokenAccount: getUserTokenAccountAddress({
+                recipient: claimantKey.publicKey,
+                mint: testEnv.pyUsdMint
+            }),
+            amount: paymentInfo.amount,
+            proof: testEnv.balanceTree.getProof(index, claimantKey.publicKey, paymentInfo.amount),
+            batchId: testEnv.distributionUniqueId,
+            index,
+        }
+        return claim(testEnv, claimDetails);
+    });
+    await Promise.all(claimPromises);
+    await verifyTreeComplete(testEnv, allPayments.length);
 }

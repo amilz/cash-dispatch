@@ -28,7 +28,7 @@ export class TestEnvironment {
     distributionUniqueId!: string;
 
     civicConfig!: CivicConfig;
-  
+
     constructor() {
         this.authority = Keypair.generate();
         this.wrongAuthority = Keypair.generate();

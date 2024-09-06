@@ -1,5 +1,7 @@
 import { TestEnvironment } from "../../utils/environment/test-environment";
-import { assertInstructionWillFail, createNewDistributionTree, distributeAllPayments } from "../helpers";
+import { createNewDistributionTree } from "../1-initialize/initialize";
+import { distributeAllPayments } from "../2-distribute/distribute";
+import { assertInstructionWillFail } from "../helpers";
 import { close, reclaim } from "./reclaim";
 
 
