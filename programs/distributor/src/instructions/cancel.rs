@@ -61,13 +61,7 @@ pub struct CancelParams {
 
 impl<'info> Cancel<'info> {
     fn transfer_to_authority(&self, amount: u64) -> Result<()> {
-        let bump = &[self.distribution_tree.bump];
-        let seeds: &[&[u8]] = &[
-            DISTRIBUTION_TREE_SEED.as_ref(),
-            self.distribution_tree.batch_id.as_bytes(),
-            bump,
-        ];
-        let signer_seeds = &[&seeds[..]];
+        let signer_seeds = &[&self.distribution_tree.signer_seeds()[..]];
 
         transfer_checked(
             CpiContext::new_with_signer(

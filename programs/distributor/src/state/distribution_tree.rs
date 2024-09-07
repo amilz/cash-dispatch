@@ -1,6 +1,6 @@
 use anchor_lang::{prelude::*, solana_program::keccak::hashv};
 
-use crate::{error::DistributionError, utils::verify, BITMAP_ARRAY_STEP, CURRENT_VERSION};
+use crate::{error::DistributionError, utils::verify, BITMAP_ARRAY_STEP, CURRENT_VERSION, DISTRIBUTION_TREE_SEED};
 
 #[account]
 #[derive(InitSpace)]
@@ -105,6 +105,15 @@ impl DistributionTree {
         self.initialize_recipients_distributed_bitmap()?;
         self.gatekeeper_network = gatekeeper_network;
         Ok(())
+    }
+
+    /// Returns the seeds used to sign for this Distribution Tree PDA
+    pub fn signer_seeds(&self) -> [&[u8]; 3] {
+        [
+            DISTRIBUTION_TREE_SEED.as_ref(),
+            self.batch_id.as_ref(),
+            std::slice::from_ref(&self.bump)
+        ]
     }
 
     /// Calculates the required size of the recipients_distributed_bitmap vector
