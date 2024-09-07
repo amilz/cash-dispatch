@@ -1,11 +1,9 @@
-import { assert } from "chai";
 import { TestEnvironment } from "../../utils/environment/test-environment";
-import { Distribute, distribute } from "./distribute";
+import { createDistributeParams, Distribute, distribute, distributeAllPayments } from "./distribute";
 import { BN, web3 } from "@coral-xyz/anchor";
-import { getAccountByIndex } from "../../utils/merkle-tree";
-import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
-import { assertInstructionWillFail, clearDistributionProgress, printDistributionProgress, verifyTreeComplete } from "../helpers";
-import { MAX_COMPUTE_UNITS } from "../../utils/constants";
+import { assertInstructionWillFail } from "../helpers";
+import { createNewDistributionTree } from "../1-initialize/initialize";
+import { getUserTokenAccountAddress } from "../../utils/pdas";
 
 /**
  * DISTRIBUTE INSTRUCTION TESTS
@@ -20,232 +18,120 @@ import { MAX_COMPUTE_UNITS } from "../../utils/constants";
  * 4. Verifies the Distribution Tree cannot distribute anything after it the distribution is complete
  */
 export async function distributeTests(testEnv: TestEnvironment) {
-    let index: number;
-    let correctParams: Distribute;
-    let totalNumberRecipients: number;
-    let computeUnits: number | undefined;
 
-    before('Set Distribute Params', async () => {
-        const treeInfo = await testEnv.program.account.distributionTree.fetch(testEnv.distributionTreePda);
-        index = treeInfo.numberDistributed.toNumber();
-        totalNumberRecipients = treeInfo.totalNumberRecipients.toNumber();
+    describe('Distributing payments under various conditions', async () => {
+        let correctParams: Distribute;
 
-        const paymentInfo = getAccountByIndex(testEnv.merkleDistributorInfo, index);
-        if (!paymentInfo) {
-            throw new Error('No recipient found');
-        }
-        const recipient = paymentInfo.keypair.publicKey;
-
-        correctParams = {
-            authority: testEnv.authority,
-            recipient,
-            distributionTreePda: testEnv.distributionTreePda,
-            mint: testEnv.pyUsdMint,
-            tokenVault: testEnv.tokenVault,
-            recipientTokenAccount: getAssociatedTokenAddressSync(
-                testEnv.pyUsdMint,
-                recipient,
-                false,
-                TOKEN_2022_PROGRAM_ID
-            ),
-            amount: paymentInfo.amount,
-            proof: testEnv.balanceTree.getProof(index, recipient, paymentInfo.amount),
-            batchId: testEnv.distributionUniqueId,
-            numberDistributedBefore: index
-        };
-        computeUnits = await distribute(testEnv, correctParams, undefined, false, true);
-        if (computeUnits) {
-            computeUnits = Math.floor(computeUnits * 1.5);
-        }
-        // preliminar tests suggest that ~100_000 are sufficient
-        // but this likely varies on size of the tree (additional testing/simulation required)
-        computeUnits = MAX_COMPUTE_UNITS;
-    });
-    it('Cannot distribute with the wrong amount', async () => {
-        const incorrectParams: Distribute = {
-            ...correctParams,
-            amount: new BN(999),
-        };
-        await assertInstructionWillFail({
-            testEnv,
-            params: incorrectParams,
-            executeInstruction: distribute,
-            expectedAnchorError: "InvalidProof"
-        });
-    });
-    it('Cannot distribute to the wrong recipient', async () => {
-        const wrongRecipient = new web3.Keypair().publicKey;
-        const wrongDestination = getAssociatedTokenAddressSync(
-            testEnv.pyUsdMint,
-            wrongRecipient,
-            false,
-            TOKEN_2022_PROGRAM_ID
-        );
-        const incorrectParams: Distribute = {
-            ...correctParams,
-            recipient: wrongRecipient,
-            recipientTokenAccount: wrongDestination,
-        };
-        await assertInstructionWillFail({
-            testEnv,
-            params: incorrectParams,
-            executeInstruction: distribute,
-            expectedAnchorError: "InvalidProof"
-        });
-    });
-    it('Cannot distribute with wrong index', async () => {
-        const wrongIndex = index + 1; // Use this to get Wrong Info
-        const wrongPaymentInfo = getAccountByIndex(testEnv.merkleDistributorInfo, wrongIndex);
-        if (!wrongPaymentInfo) {
-            throw new Error('No recipient found');
-        }
-        const wrongRecipient = wrongPaymentInfo.keypair.publicKey;
-        const wrongDestination = getAssociatedTokenAddressSync(
-            testEnv.pyUsdMint,
-            wrongRecipient,
-            false,
-            TOKEN_2022_PROGRAM_ID
-        );
-
-        const distributeParams: Distribute = {
-            ...correctParams,
-            recipient: wrongRecipient,
-            amount: wrongPaymentInfo.amount,
-            recipientTokenAccount: wrongDestination,
-            proof: testEnv.balanceTree.getProof(wrongIndex, wrongRecipient, wrongPaymentInfo.amount),
-            // numberDistributedBefore: index (this should lead to an invalid proof b/c index and wrong index don't match)
-        };
-        await assertInstructionWillFail({
-            testEnv,
-            params: distributeParams,
-            executeInstruction: distribute,
-            expectedAnchorError: "InvalidProof"
-        });
-    });
-    it('Cannot Distribute to the wrong proof', async () => {
-        const incorrectProof = correctParams.proof.map(buffer => Buffer.from(Array.from(buffer).reverse()));
-        const incorrectParams: Distribute = {
-            ...correctParams,
-            proof: incorrectProof
-        };
-        await assertInstructionWillFail({
-            testEnv,
-            params: incorrectParams,
-            executeInstruction: distribute,
-            expectedAnchorError: "InvalidProof"
-        });
-
-    });
-    it('Cannot distribute by unauthorized account', async () => {
-        const incorrectParams: Distribute = {
-            ...correctParams,
-            authority: testEnv.wrongAuthority,
-        };
-        await assertInstructionWillFail({
-            testEnv,
-            params: incorrectParams,
-            executeInstruction: distribute,
-            expectedAnchorError: "SignerNotAuthorized"
-        });
-    });
-    it('Distributes tokens to the recipient', async () => {
-        const paymentInfo = getAccountByIndex(testEnv.merkleDistributorInfo, index);
-        if (!paymentInfo) {
-            throw new Error('No recipient found');
-        }
-        const recipient = paymentInfo.keypair.publicKey;
-
-        const distributeParams: Distribute = {
-            authority: testEnv.authority,
-            recipient,
-            distributionTreePda: testEnv.distributionTreePda,
-            mint: testEnv.pyUsdMint,
-            tokenVault: testEnv.tokenVault,
-            recipientTokenAccount: getAssociatedTokenAddressSync(
-                testEnv.pyUsdMint,
-                recipient,
-                false,
-                TOKEN_2022_PROGRAM_ID
-            ),
-            amount: paymentInfo.amount,
-            proof: testEnv.balanceTree.getProof(index, recipient, paymentInfo.amount),
-            batchId: testEnv.distributionUniqueId,
-            numberDistributedBefore: index
-        };
-        await distribute(testEnv, distributeParams, computeUnits);
-        index++;
-    });
-    it('Cannot distribute the same payment twice', async () => {
-        await assertInstructionWillFail({
-            testEnv,
-            params: correctParams,
-            executeInstruction: distribute,
-            // We expect that the verify proof will fail because 
-            // the payment has already been distributed and the index
-            // will not match the on-chain index
-            expectedAnchorError: "AlreadyClaimed"
-        });
-    });
-    it('Distributes remaining payments in batches', async () => {
-        const totalDistributions = totalNumberRecipients - index;
-        const batchSize = 256;
-        const distributions: Distribute[] = [];
-
-        // Prepare all distribution parameters
-        for (let i = 0; i < totalDistributions; i++) {
-            const currentIndex = index + i;
-            const paymentInfo = getAccountByIndex(testEnv.merkleDistributorInfo, currentIndex);
-            if (!paymentInfo) {
-                throw new Error(`No payment found for index ${currentIndex}`);
-            }
-            const recipient = paymentInfo.keypair.publicKey;
-
-            distributions.push({
-                authority: testEnv.authority,
-                recipient,
-                distributionTreePda: testEnv.distributionTreePda,
-                mint: testEnv.pyUsdMint,
-                tokenVault: testEnv.tokenVault,
-                recipientTokenAccount: getAssociatedTokenAddressSync(
-                    testEnv.pyUsdMint,
-                    recipient,
-                    false,
-                    TOKEN_2022_PROGRAM_ID
-                ),
-                amount: paymentInfo.amount,
-                proof: testEnv.balanceTree.getProof(currentIndex, recipient, paymentInfo.amount),
-                batchId: testEnv.distributionUniqueId,
-                numberDistributedBefore: currentIndex
+        before('Initializes a new distribution tree', async () => {
+            await createNewDistributionTree({
+                testEnv,
+                numPayments: 5,
+                startOffset: -100
             });
-        }
+        });
 
-        let successfulDistributions = 0;
-
-        // Process distributions in batches
-        for (let i = 0; i < distributions.length; i += batchSize) {
-            const batch = distributions.slice(i, i + batchSize);
-            await Promise.all(batch.map(async (params, batchIndex) => {
-                try {
-                    await distribute(testEnv, params, computeUnits);
-                    successfulDistributions++;
-                    printDistributionProgress(totalDistributions, successfulDistributions);
-                } catch (error) {
-                    console.error(`Failed to distribute to ${params.recipient.toBase58()}:`, error);
-                }
-                const DELAY = 1;
-                await new Promise(resolve => setTimeout(resolve, DELAY));
-            }));
-        }
-
-        clearDistributionProgress();
-        await verifyTreeComplete(testEnv, totalNumberRecipients);
+        before('Set Distribute Params', async () => {
+            correctParams = await createDistributeParams({ testEnv, index: 0 });
+        });
+        it('Cannot distribute with the wrong amount', async () => {
+            const incorrectParams: Distribute = {
+                ...correctParams,
+                amount: new BN(999),
+            };
+            await assertInstructionWillFail({
+                testEnv,
+                params: incorrectParams,
+                executeInstruction: distribute,
+                expectedAnchorError: "InvalidProof"
+            });
+        });
+        it('Cannot distribute to the wrong recipient', async () => {
+            const wrongRecipient = new web3.Keypair().publicKey;
+            const wrongDestination = getUserTokenAccountAddress({
+                recipient: wrongRecipient,
+                mint: testEnv.pyUsdMint
+            })
+            const incorrectParams: Distribute = {
+                ...correctParams,
+                recipient: wrongRecipient,
+                recipientTokenAccount: wrongDestination,
+            };
+            await assertInstructionWillFail({
+                testEnv,
+                params: incorrectParams,
+                executeInstruction: distribute,
+                expectedAnchorError: "InvalidProof"
+            });
+        });
+        it('Cannot distribute with wrong index', async () => {
+            const wrongIndex = 1;
+            const distributeParams: Distribute = {
+                ...correctParams,
+                numberDistributedBefore: wrongIndex
+            };
+            await assertInstructionWillFail({
+                testEnv,
+                params: distributeParams,
+                executeInstruction: distribute,
+                expectedAnchorError: "InvalidProof",
+            });
+        });
+        it('Cannot Distribute to the wrong proof', async () => {
+            const incorrectProof = correctParams.proof.map(buffer => Buffer.from(Array.from(buffer).reverse()));
+            const incorrectParams: Distribute = {
+                ...correctParams,
+                proof: incorrectProof
+            };
+            await assertInstructionWillFail({
+                testEnv,
+                params: incorrectParams,
+                executeInstruction: distribute,
+                expectedAnchorError: "InvalidProof"
+            });
+        });
+        it('Cannot distribute by unauthorized account', async () => {
+            const incorrectParams: Distribute = {
+                ...correctParams,
+                authority: testEnv.wrongAuthority,
+            };
+            await assertInstructionWillFail({
+                testEnv,
+                params: incorrectParams,
+                executeInstruction: distribute,
+                expectedAnchorError: "SignerNotAuthorized"
+            });
+        });
+        it('Distributes tokens to the recipient', async () => {
+            await distribute(testEnv, correctParams);
+        });
+        it('Cannot distribute the same payment twice', async () => {
+            await assertInstructionWillFail({
+                testEnv,
+                params: correctParams,
+                executeInstruction: distribute,
+                expectedAnchorError: "AlreadyClaimed"
+            });
+        });
     });
-    it('Cannot pause a distribution that is not active', async () => {
-        await assertInstructionWillFail({
-            testEnv,
-            params: correctParams,
-            executeInstruction: distribute,
-            expectedAnchorError: "DistributionNotActive"
+    describe('Distributes all payments', async () => {
+        before('Initializes a new distribution tree', async () => {
+            await createNewDistributionTree({ testEnv });
+        });
+
+        it('Distributes all payments', async () => {
+            await distributeAllPayments({
+                testEnv,
+                totalNumberRecipients: testEnv.merkleDistributorInfo.payments.length,
+            });
+        });
+        it('Cannot distribute after the distribution is complete', async () => {
+            const params = await createDistributeParams({ testEnv, index: 0 });
+            await assertInstructionWillFail({
+                testEnv,
+                params,
+                executeInstruction: distribute,
+                expectedAnchorError: "DistributionNotActive"
+            });
         });
     });
 }

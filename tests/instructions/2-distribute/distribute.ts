@@ -109,15 +109,20 @@ export async function distribute(
 interface DistributeAllPaymentsParams {
     testEnv: TestEnvironment,
     totalNumberRecipients: number,
+    indicesToSkip?: number[]
 }
 
 export async function distributeAllPayments({
     testEnv,
-    totalNumberRecipients
+    totalNumberRecipients,
+    indicesToSkip = []
 }: DistributeAllPaymentsParams) {
     const allPayments = testEnv.merkleDistributorInfo.payments;
 
     const distributionPromises = allPayments.map((paymentInfo, index) => {
+        if (indicesToSkip.includes(index)) {
+            return null;
+        }
         const recipient = paymentInfo.keypair.publicKey;
         const distribution: Distribute = {
             authority: testEnv.authority,
@@ -150,9 +155,6 @@ export async function createDistributeParams({
     testEnv,
     index
 }: CreateDistributeParams): Promise<Distribute> {
-
-    const treeInfo = await testEnv.program.account.distributionTree.fetch(testEnv.distributionTreePda);
-    index = treeInfo.numberDistributed.toNumber();
     const paymentInfo = getAccountByIndex(testEnv.merkleDistributorInfo, index);
     if (!paymentInfo) {
         throw new Error('No recipient found');

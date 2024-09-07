@@ -1,11 +1,9 @@
 import { TestEnvironment } from "../../utils/environment/test-environment";
 import { Claim, claim, claimAllPayments, createClaimParams } from "./claim";
 import { BN, web3 } from "@coral-xyz/anchor";
-import { getAccountByIndex } from "../../utils/merkle-tree";
-import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
-import { assertInstructionWillFail, verifyTreeComplete } from "../helpers";
+import { assertInstructionWillFail } from "../helpers";
 import { OFFSET_24_HOURS } from "../../utils/constants";
-import { createNewDistributionTree, initialize, Initialize } from "../1-initialize/initialize";
+import { createNewDistributionTree } from "../1-initialize/initialize";
 import { airdropToMultiple } from "../../utils/solana-helpers";
 import { getUserTokenAccountAddress } from "../../utils/pdas";
 

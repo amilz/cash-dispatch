@@ -1,13 +1,10 @@
 import { TestEnvironment } from "../../utils/environment/test-environment";
 import { createExpandParams, Expand, expand } from "./expand";
-import { createNewDistributionTree, initialize, Initialize } from "../1-initialize/initialize";
-import { getAccountByIndex } from "../../utils/merkle-tree";
+import { createNewDistributionTree } from "../1-initialize/initialize";
 import { BITMAP_ARRAY_STEP } from "../../utils/constants";
 import { assert } from "chai";
 import { assertInstructionWillFail } from "../helpers";
-import { web3 } from "@coral-xyz/anchor";
 import { createDistributeParams, distribute, Distribute } from "../2-distribute/distribute";
-import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 
 
 /**
@@ -40,7 +37,7 @@ export async function expandTests(testEnv: TestEnvironment) {
         });
 
         before('Set Cancel Params', async () => {
-            distributeParams = await createDistributeParams({ testEnv, index });
+            distributeParams = await createDistributeParams({ testEnv, index: 0 });
             expandParams = createExpandParams({ testEnv });
         });
 
