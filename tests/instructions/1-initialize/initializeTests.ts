@@ -18,137 +18,139 @@ import { assertInstructionWillFail } from "../helpers";
 export async function initializeTests(testEnv: TestEnvironment) {
     let correctParams: Initialize;
 
-    before('Set Initialize Params', async () => {
-        correctParams = {
-            authority: testEnv.authority,
-            distributionTreePda: testEnv.distributionTreePda,
-            mint: testEnv.pyUsdMint,
-            tokenSource: testEnv.tokenSource,
-            tokenVault: testEnv.tokenVault,
-            merkleRoot: testEnv.balanceTree.getRoot(),
-            batchId: testEnv.distributionUniqueId,
-            totalNumberRecipients: Object.keys(testEnv.merkleDistributorInfo.payments).length,
-            transferToVaultAmount: Object.values(testEnv.merkleDistributorInfo.payments).reduce((sum, payment) => sum + payment.amount.toNumber(), 0),
-            mintDecimals: 6,
-            startTs: testEnv.distributionStartTs,
-            endTs: null,
-        };
-    });
-    it('Cannot initialize with no recipients', async () => {
-        const incorrectParams: Initialize = {
-            ...correctParams,
-            totalNumberRecipients: 0,
-        };
-        await assertInstructionWillFail({
-            testEnv,
-            params: incorrectParams,
-            executeInstruction: initialize,
-            expectedAnchorError: "NoRecipients"
+    describe('Initializes a new Distribution Tree under various conditions', async () => {
+        before('Set Initialize Params', async () => {
+            correctParams = {
+                authority: testEnv.authority,
+                distributionTreePda: testEnv.distributionTreePda,
+                mint: testEnv.pyUsdMint,
+                tokenSource: testEnv.tokenSource,
+                tokenVault: testEnv.tokenVault,
+                merkleRoot: testEnv.balanceTree.getRoot(),
+                batchId: testEnv.distributionUniqueId,
+                totalNumberRecipients: Object.keys(testEnv.merkleDistributorInfo.payments).length,
+                transferToVaultAmount: Object.values(testEnv.merkleDistributorInfo.payments).reduce((sum, payment) => sum + payment.amount.toNumber(), 0),
+                mintDecimals: 6,
+                startTs: testEnv.distributionStartTs,
+                endTs: null,
+            };
         });
-    });
-    it('Cannot initialize with wrong distribution tree PDA ', async () => {
-        const incorrectParams: Initialize = {
-            ...correctParams,
-            distributionTreePda: web3.Keypair.generate().publicKey,
-        };
-        await assertInstructionWillFail({
-            testEnv,
-            params: incorrectParams,
-            executeInstruction: initialize,
+        it('Cannot initialize with no recipients', async () => {
+            const incorrectParams: Initialize = {
+                ...correctParams,
+                totalNumberRecipients: 0,
+            };
+            await assertInstructionWillFail({
+                testEnv,
+                params: incorrectParams,
+                executeInstruction: initialize,
+                expectedAnchorError: "NoRecipients"
+            });
         });
-    });
-    it('Cannot initialize with start timestamp after end timestamp', async () => {
-        const incorrectParams: Initialize = {
-            ...correctParams,
-            startTs: Date.now() / 1000 + 7200,
-            endTs: Date.now() / 1000 + 3600
-        };
-        await assertInstructionWillFail({
-            testEnv,
-            params: incorrectParams,
-            executeInstruction: initialize,
-            expectedAnchorError: "StartTimestampAfterEnd"
+        it('Cannot initialize with wrong distribution tree PDA ', async () => {
+            const incorrectParams: Initialize = {
+                ...correctParams,
+                distributionTreePda: web3.Keypair.generate().publicKey,
+            };
+            await assertInstructionWillFail({
+                testEnv,
+                params: incorrectParams,
+                executeInstruction: initialize,
+            });
         });
-    });
-    it('Cannot initialize with end timestamp in the past', async () => {
-        const incorrectParams: Initialize = {
-            ...correctParams,
-            endTs: Date.now() / 1000 - 3600
-        };
-        await assertInstructionWillFail({
-            testEnv,
-            params: incorrectParams,
-            executeInstruction: initialize,
-            expectedAnchorError: "TimestampsNotInFuture"
+        it('Cannot initialize with start timestamp after end timestamp', async () => {
+            const incorrectParams: Initialize = {
+                ...correctParams,
+                startTs: Date.now() / 1000 + 7200,
+                endTs: Date.now() / 1000 + 3600
+            };
+            await assertInstructionWillFail({
+                testEnv,
+                params: incorrectParams,
+                executeInstruction: initialize,
+                expectedAnchorError: "StartTimestampAfterEnd"
+            });
         });
-    });
-    it('Cannot initialize with zero transfer amount', async () => {
-        const incorrectParams: Initialize = {
-            ...correctParams,
-            transferToVaultAmount: 0,
-        };
-        await assertInstructionWillFail({
-            testEnv,
-            params: incorrectParams,
-            executeInstruction: initialize,
-            expectedAnchorError: "ZeroTransferAmount"
+        it('Cannot initialize with end timestamp in the past', async () => {
+            const incorrectParams: Initialize = {
+                ...correctParams,
+                endTs: Date.now() / 1000 - 3600
+            };
+            await assertInstructionWillFail({
+                testEnv,
+                params: incorrectParams,
+                executeInstruction: initialize,
+                expectedAnchorError: "TimestampsNotInFuture"
+            });
         });
-    });
-    it('Cannot initialize with batch ID too short', async () => {
-        const wrongBatchId = "short";
-        const wrongTreePda = getDistributionTreePDA({
-            distributorProgram: testEnv.program.programId,
-            batchId: wrongBatchId
+        it('Cannot initialize with zero transfer amount', async () => {
+            const incorrectParams: Initialize = {
+                ...correctParams,
+                transferToVaultAmount: 0,
+            };
+            await assertInstructionWillFail({
+                testEnv,
+                params: incorrectParams,
+                executeInstruction: initialize,
+                expectedAnchorError: "ZeroTransferAmount"
+            });
         });
-        const wrongVault = getTokenVaultAddress({
-            mint: testEnv.pyUsdMint,
-            distributionTreePDA: wrongTreePda
+        it('Cannot initialize with batch ID too short', async () => {
+            const wrongBatchId = "short";
+            const wrongTreePda = getDistributionTreePDA({
+                distributorProgram: testEnv.program.programId,
+                batchId: wrongBatchId
+            });
+            const wrongVault = getTokenVaultAddress({
+                mint: testEnv.pyUsdMint,
+                distributionTreePDA: wrongTreePda
+            });
+            const incorrectParams: Initialize = {
+                ...correctParams,
+                distributionTreePda: wrongTreePda,
+                tokenVault: wrongVault,
+                batchId: wrongBatchId,
+            };
+            await assertInstructionWillFail({
+                testEnv,
+                params: incorrectParams,
+                executeInstruction: initialize,
+                expectedAnchorError: "BatchIdTooShort"
+            });
         });
-        const incorrectParams: Initialize = {
-            ...correctParams,
-            distributionTreePda: wrongTreePda,
-            tokenVault: wrongVault,
-            batchId: wrongBatchId,
-        };
-        await assertInstructionWillFail({
-            testEnv,
-            params: incorrectParams,
-            executeInstruction: initialize,
-            expectedAnchorError: "BatchIdTooShort"
+        it('Cannot initialize with batch ID too long', async () => {
+            const wrongBatchId = "THIS_BATCH_ID_IS_WAY_TOO_LONG";
+            const wrongTreePda = getDistributionTreePDA({
+                distributorProgram: testEnv.program.programId,
+                batchId: wrongBatchId
+            });
+            const wrongVault = getTokenVaultAddress({
+                mint: testEnv.pyUsdMint,
+                distributionTreePDA: wrongTreePda
+            });
+            const incorrectParams: Initialize = {
+                ...correctParams,
+                distributionTreePda: wrongTreePda,
+                tokenVault: wrongVault,
+                batchId: wrongBatchId,
+            };
+            await assertInstructionWillFail({
+                testEnv,
+                params: incorrectParams,
+                executeInstruction: initialize,
+                expectedAnchorError: "BatchIdTooLong"
+            });
         });
-    });
-    it('Cannot initialize with batch ID too long', async () => {
-        const wrongBatchId = "THIS_BATCH_ID_IS_WAY_TOO_LONG";
-        const wrongTreePda = getDistributionTreePDA({
-            distributorProgram: testEnv.program.programId,
-            batchId: wrongBatchId
+        it('Initializes successfully', async () => {
+            await initialize(testEnv, correctParams);
         });
-        const wrongVault = getTokenVaultAddress({
-            mint: testEnv.pyUsdMint,
-            distributionTreePDA: wrongTreePda
-        });
-        const incorrectParams: Initialize = {
-            ...correctParams,
-            distributionTreePda: wrongTreePda,
-            tokenVault: wrongVault,
-            batchId: wrongBatchId,
-        };
-        await assertInstructionWillFail({
-            testEnv,
-            params: incorrectParams,
-            executeInstruction: initialize,
-            expectedAnchorError: "BatchIdTooLong"
-        });
-    });
-    it('Initializes successfully', async () => {
-        await initialize(testEnv, correctParams);
-    });
-    it('Cannot Re-Initialize', async () => {
-        await assertInstructionWillFail({
-            testEnv,
-            params: correctParams,
-            executeInstruction: initialize,
-            expectedTransactionError: "0x0"
+        it('Cannot Re-Initialize', async () => {
+            await assertInstructionWillFail({
+                testEnv,
+                params: correctParams,
+                executeInstruction: initialize,
+                expectedTransactionError: "0x0"
+            });
         });
     });
 }
