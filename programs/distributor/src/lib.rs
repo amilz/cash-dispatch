@@ -39,6 +39,7 @@ pub mod distributor {
         instructions::claim::handler(ctx, params)
     }
 
+    #[access_control(instructions::cancel::validate(&ctx, &params))]
     pub fn cancel(ctx: Context<Cancel>, params: CancelParams) -> Result<()> {
         instructions::cancel::handler(ctx, params)
     }

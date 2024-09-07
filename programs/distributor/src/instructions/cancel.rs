@@ -86,6 +86,15 @@ impl<'info> Cancel<'info> {
     }
 }
 
+pub fn validate(ctx: &Context<Cancel>, _params: &CancelParams) -> Result<()> {
+    let distribution_tree = &ctx.accounts.distribution_tree;
+    require!(
+        distribution_tree.status != DistributionStatus::Complete || distribution_tree.status != DistributionStatus::Cancelled,
+        DistributionError::DistributionNotActive
+    );
+    Ok(())
+}
+
 pub fn handler(ctx: Context<Cancel>, _params: CancelParams) -> Result<()> {
     let refund_amount = ctx.accounts.token_vault.amount;
     ctx.accounts.transfer_to_authority(refund_amount)?;

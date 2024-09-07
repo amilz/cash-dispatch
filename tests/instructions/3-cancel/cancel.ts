@@ -60,3 +60,18 @@ export async function cancel(
         throw error;
     }
 }
+
+interface CreateCancelParams {
+    testEnv: TestEnvironment,
+}
+
+export async function createCancelParams({ testEnv }: CreateCancelParams): Promise<Cancel> {
+    return {
+        authority: testEnv.authority,
+        distributionTreePda: testEnv.distributionTreePda,
+        mint: testEnv.pyUsdMint,
+        tokenVault: testEnv.tokenVault,
+        authorityTokenAccount: testEnv.tokenSource,
+        batchId: testEnv.distributionUniqueId
+    }
+}
