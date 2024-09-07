@@ -69,3 +69,15 @@ export async function expand(
         throw error;
     }
 }
+
+interface CreateExpandParams {
+    testEnv: TestEnvironment
+}
+
+export function createExpandParams({ testEnv }: CreateExpandParams): Expand {
+    return {
+        authority: testEnv.authority,
+        distributionTreePda: testEnv.distributionTreePda,
+        batchId: testEnv.distributionUniqueId,
+    }
+}

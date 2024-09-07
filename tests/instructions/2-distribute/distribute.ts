@@ -4,7 +4,7 @@ import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-
 import { BN, web3 } from '@coral-xyz/anchor';
 import { assert } from 'chai';
 import { getSimulationComputeUnits } from "../../utils/solana-helpers";
-import { isBitSet } from "../../utils/merkle-tree";
+import { getAccountByIndex, isBitSet } from "../../utils/merkle-tree";
 import { getUserTokenAccountAddress } from "../../utils/pdas";
 import { verifyTreeComplete } from "../helpers";
 
@@ -139,4 +139,41 @@ export async function distributeAllPayments({
     });
     await Promise.all(distributionPromises);
     await verifyTreeComplete(testEnv, totalNumberRecipients);
+}
+
+interface CreateDistributeParams {
+    testEnv: TestEnvironment,
+    index: number,
+}
+
+export async function createDistributeParams({
+    testEnv,
+    index
+}: CreateDistributeParams): Promise<Distribute> {
+
+    const treeInfo = await testEnv.program.account.distributionTree.fetch(testEnv.distributionTreePda);
+    index = treeInfo.numberDistributed.toNumber();
+    const paymentInfo = getAccountByIndex(testEnv.merkleDistributorInfo, index);
+    if (!paymentInfo) {
+        throw new Error('No recipient found');
+    }
+    const recipient = paymentInfo.keypair.publicKey;
+
+    // Set correct params for distribute
+    const distributeParams: Distribute = {
+        authority: testEnv.authority,
+        recipient,
+        distributionTreePda: testEnv.distributionTreePda,
+        mint: testEnv.pyUsdMint,
+        tokenVault: testEnv.tokenVault,
+        recipientTokenAccount: getUserTokenAccountAddress({
+            recipient,
+            mint: testEnv.pyUsdMint
+        }),
+        amount: paymentInfo.amount,
+        proof: testEnv.balanceTree.getProof(index, recipient, paymentInfo.amount),
+        batchId: testEnv.distributionUniqueId,
+        numberDistributedBefore: index
+    };
+    return distributeParams;
 }
