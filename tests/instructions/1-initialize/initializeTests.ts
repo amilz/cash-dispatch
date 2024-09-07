@@ -18,7 +18,7 @@ import { assertInstructionWillFail } from "../helpers";
 export async function initializeTests(testEnv: TestEnvironment) {
     let correctParams: Initialize;
 
-    describe('Initializes a new Distribution Tree under various conditions', async () => {
+    describe('Initializes a new distribution tree under various conditions', async () => {
         before('Set Initialize Params', async () => {
             correctParams = {
                 authority: testEnv.authority,
@@ -141,10 +141,10 @@ export async function initializeTests(testEnv: TestEnvironment) {
                 expectedAnchorError: "BatchIdTooLong"
             });
         });
-        it('Initializes successfully', async () => {
+        it('Initializes successfully with correct parameters', async () => {
             await initialize(testEnv, correctParams);
         });
-        it('Cannot Re-Initialize', async () => {
+        it('Cannot re-initialize a tree that already exists', async () => {
             await assertInstructionWillFail({
                 testEnv,
                 params: correctParams,

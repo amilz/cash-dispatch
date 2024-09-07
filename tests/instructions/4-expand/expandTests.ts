@@ -25,7 +25,7 @@ export async function expandTests(testEnv: TestEnvironment) {
     let expandParams: Expand;
     let distributeParams: Distribute;
 
-    describe('Expanding a tree that requires expansion', async () => {
+    describe('Expanding a large tree that requires additional space', async () => {
         before('Initializes a new Distribution Tree with claims enabled', async () => {
             const numPayments = (64 * BITMAP_ARRAY_STEP) + 10;
             assert.isAbove(numPayments, BITMAP_ARRAY_STEP, "Number of payments should be greater than BITMAP_ARRAY_STEP for this test");
@@ -50,11 +50,11 @@ export async function expandTests(testEnv: TestEnvironment) {
             });
         });
 
-        it('Expands successfully', async () => {
+        it('Can expand successfully', async () => {
             await expand(testEnv, expandParams);
         });
 
-        it('Cannot expand after completely expanded', async () => {
+        it('Cannot expand after it has adequate space', async () => {
             await assertInstructionWillFail({
                 testEnv,
                 params: expandParams,
@@ -63,7 +63,7 @@ export async function expandTests(testEnv: TestEnvironment) {
             });
         });
 
-        it('Can distribute after expanding successfully', async () => {
+        it('Can distribute after expanding to the required space', async () => {
             await distribute(testEnv, distributeParams);
         });
 
@@ -79,7 +79,7 @@ export async function expandTests(testEnv: TestEnvironment) {
                 allowClaims: false
             })
         });
-        it('Cannot expand a tree that does not require expansion', async () => {
+        it('Cannot expand a tree that does not require additional space', async () => {
             await assertInstructionWillFail({
                 testEnv,
                 params: expandParams,

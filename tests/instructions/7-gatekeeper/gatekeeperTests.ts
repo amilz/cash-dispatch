@@ -101,7 +101,7 @@ export async function gatekeeperTests(testEnv: TestEnvironment) {
                 expectedAnchorError: "InvalidGatewayToken"
             });
         });
-        it('Distributes successfully with Gateway Token', async () => {
+        it('Can distribute successfully to a recipient with a Gateway Token', async () => {
             const gatewayToken = await gatewayAuthorizeAccount({ testEnv, account: distributionRecipient });
             distributeParams.gatewayToken = gatewayToken.publicKey;
             await distribute(testEnv, distributeParams);
@@ -114,12 +114,12 @@ export async function gatekeeperTests(testEnv: TestEnvironment) {
                 expectedAnchorError: "InvalidGatewayToken"
             });
         });
-        it('Authorizes user and they claim their tokens', async () => {
+        it('Can be claimed by a recipient with a Gateway Token', async () => {
             const gatewayToken = await gatewayAuthorizeAccount({ testEnv, account: claimantKeypair.publicKey });
             claimParams.gatewayToken = gatewayToken.publicKey;
             await claim(testEnv, claimParams);
         });
-        it('Authorizes and distributes tokens to remaining accounts', async () => {
+        it('Can authorize and distribute tokens to remaining accounts', async () => {
             let processedIndices = [distributeIndex, claimIndex];
             const remainingPayments = testEnv.merkleDistributorInfo.payments.filter((_, paymentIndex) => !processedIndices.includes(paymentIndex));
             const remainingPaymentsWithAuth = await Promise.all(remainingPayments.map(async (paymentInfo) => {

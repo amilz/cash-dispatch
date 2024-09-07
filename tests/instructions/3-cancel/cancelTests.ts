@@ -38,10 +38,10 @@ export async function cancelTests(testEnv: TestEnvironment) {
             cancelParams = await createCancelParams({ testEnv });
         });
 
-        it('Cancels successfully', async () => {
+        it('Can cancel an active distribution tree', async () => {
             await cancel(testEnv, cancelParams);
         });
-        it('Cannot cancel twice', async () => {
+        it('Cannot cancel a tree that is already cancelled', async () => {
             await assertInstructionWillFail({
                 testEnv,
                 params: cancelParams,

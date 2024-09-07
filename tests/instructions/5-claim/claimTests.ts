@@ -81,7 +81,7 @@ export async function claimTests(testEnv: TestEnvironment) {
             });
 
         });
-        it('Can claim', async () => {
+        it('Can claim a single payment with correct parameters', async () => {
             await claim(testEnv, correctParams, undefined, undefined, undefined, false);
         });
         it('Cannot claim multiple times', async () => {
@@ -92,7 +92,7 @@ export async function claimTests(testEnv: TestEnvironment) {
                 expectedAnchorError: "AlreadyClaimed"
             });
         });
-        it('Cannot distribute to the wrong recipient', async () => {
+        it('Cannot be claimed by a recipient not in the merkle tree', async () => {
             const wrongDestination = getUserTokenAccountAddress({
                 recipient: wrongRecipient.publicKey,
                 mint: testEnv.pyUsdMint
@@ -111,14 +111,14 @@ export async function claimTests(testEnv: TestEnvironment) {
                 expectedAnchorError: "InvalidProof"
             });
         });
-        it('Allows all recipients to claim', async () => {
+        it('Can be claimed succesfully by all recipients in the merkle tree', async () => {
             await claimAllPayments({
                 testEnv,
                 includeAirdrop: false,
                 skipInices: [0] // Skip the first claimant because they already claimed
             });
         });
-        it('Cannot claim when distribution is not active', async () => {
+        it('Cannot be claimed when distribution is not active', async () => {
             await assertInstructionWillFail({
                 testEnv,
                 params: correctParams,

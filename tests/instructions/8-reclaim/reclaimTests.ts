@@ -31,11 +31,11 @@ export async function reclaimTests(testEnv: TestEnvironment) {
 
     describe('Reclaiming a tree and then closing it', () => {
 
-        before('Initializes a new Distribution Tree', async () => {
+        before('Initializes a new distribution tree', async () => {
             await createNewDistributionTree({ testEnv, numPayments: totalNumberRecipients });
         });
 
-        it('Cannot reclaim before the Distribution Tree is closed', async () => {
+        it('Cannot reclaim before the distribution tree is closed', async () => {
             await assertInstructionWillFail({
                 testEnv,
                 params: {},
@@ -44,7 +44,7 @@ export async function reclaimTests(testEnv: TestEnvironment) {
             });
         });
 
-        it('Cannot close before the Distribution Tree is closed', async () => {
+        it('Cannot close before the distribution tree is closed', async () => {
             await assertInstructionWillFail({
                 testEnv,
                 params: { acknowledgeIrreversible: true },
@@ -53,7 +53,7 @@ export async function reclaimTests(testEnv: TestEnvironment) {
             });
         });
 
-        it('Distributes tokens to all accounts', async () => {
+        it('Can distribute tokens to all accounts', async () => {
             await distributeAllPayments({ testEnv, totalNumberRecipients });
         });
 
@@ -66,11 +66,11 @@ export async function reclaimTests(testEnv: TestEnvironment) {
             });
         });
 
-        it('Reclaims tokens', async () => {
+        it('Can reclaim rent after the distribution tree is closed', async () => {
             await reclaim(testEnv, {});
         });
 
-        it('Closes the Distribution Tree after reclaiming', async () => {
+        it('Can close the distribution tree after reclaiming', async () => {
             await close(testEnv, { acknowledgeIrreversible: true });
         });
     });
@@ -96,7 +96,7 @@ export async function reclaimTests(testEnv: TestEnvironment) {
                 expectedAnchorError: "MustAcknowledgeIrreversible"
             });
         });
-        it('Closes the Distribution Tree without reclaiming', async () => {
+        it('Can close the distribution tree without reclaiming', async () => {
             await close(testEnv, { acknowledgeIrreversible: true });
         });
 

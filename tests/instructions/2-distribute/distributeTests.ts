@@ -101,7 +101,7 @@ export async function distributeTests(testEnv: TestEnvironment) {
                 expectedAnchorError: "SignerNotAuthorized"
             });
         });
-        it('Distributes tokens to the recipient', async () => {
+        it('Can distribute tokens to a single recipient', async () => {
             await distribute(testEnv, correctParams);
         });
         it('Cannot distribute the same payment twice', async () => {
@@ -118,7 +118,7 @@ export async function distributeTests(testEnv: TestEnvironment) {
             await createNewDistributionTree({ testEnv });
         });
 
-        it('Distributes all payments', async () => {
+        it('Can distribute payments to all recipients', async () => {
             await distributeAllPayments({
                 testEnv,
                 totalNumberRecipients: testEnv.merkleDistributorInfo.payments.length,

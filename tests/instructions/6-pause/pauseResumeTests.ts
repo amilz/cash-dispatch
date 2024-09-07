@@ -29,7 +29,7 @@ export async function pauseResumeTests(testEnv: TestEnvironment) {
 
     describe('Pause/Resume Distribution Tree', async () => {
 
-        before('Initializes a new Distribution Tree with Gatekeeper Network', async () => {
+        before('Initializes a new distribution tree', async () => {
             await createNewDistributionTree({
                 testEnv,
                 allowClaims: true,
@@ -73,7 +73,7 @@ export async function pauseResumeTests(testEnv: TestEnvironment) {
                 batchId: testEnv.distributionUniqueId
             };
         });
-        it('Cannot Pause with non-authority account', async () => {
+        it('Cannot pause with non-authority account', async () => {
             const wrongAuthority = web3.Keypair.generate();
             const wrongParams = {
                 ...pauseResumeParams,
@@ -87,11 +87,11 @@ export async function pauseResumeTests(testEnv: TestEnvironment) {
             });
         });
 
-        it('Pauses successfully', async () => {
+        it('Can pause successfully', async () => {
             await pause(testEnv, pauseResumeParams);
         });
 
-        it('Cannot Resume with non-authority account', async () => {
+        it('Cannot resume with non-authority account', async () => {
             const wrongAuthority = web3.Keypair.generate();
             const wrongParams = {
                 ...pauseResumeParams,
@@ -105,7 +105,7 @@ export async function pauseResumeTests(testEnv: TestEnvironment) {
             });
         });
 
-        it('Cannot Distribute while Paused', async () => {
+        it('Cannot distribute while paused', async () => {
             await assertInstructionWillFail({
                 testEnv,
                 params: distributeParams,
@@ -114,11 +114,11 @@ export async function pauseResumeTests(testEnv: TestEnvironment) {
             });
         });
 
-        it('Resumes successfully', async () => {
+        it('Can resume successfully', async () => {
             await resume(testEnv, pauseResumeParams);
         });
 
-        it('Can Distribute after Resuming', async () => {
+        it('Can distribute a payment after resuming', async () => {
             await distribute(testEnv, distributeParams);
         });
 
