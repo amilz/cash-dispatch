@@ -1,6 +1,6 @@
 import * as anchor from '@coral-xyz/anchor';
 import { TestEnvironment } from './test-environment';
-import { Distributor } from "../../../target/types/distributor";
+import { CashDispatch } from "../../../target/types/cash_dispatch";
 import * as web3 from '@solana/web3.js';
 import { airdropToMultiple, makeTokenMint } from '../solana-helpers';
 import { INITIAL_SOL_BALANCE, INITIAL_TOKEN_BALANCE, NUM_SAMPLE_BALANCES, PY_USD_SECRET } from '../constants';
@@ -25,7 +25,7 @@ export async function initEnviroment({
 
         anchor.setProvider(provider);
         testEnv.provider = provider;
-        testEnv.program = anchor.workspace.Distributor as anchor.Program<Distributor>;
+        testEnv.program = anchor.workspace.CashDispatch as anchor.Program<CashDispatch>;
 
         testEnv.civicConfig = setupCivcPass(provider.connection);
 

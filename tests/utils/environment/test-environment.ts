@@ -1,5 +1,5 @@
 import * as anchor from '@coral-xyz/anchor';
-import { Distributor } from "../../../target/types/distributor";
+import { CashDispatch } from "../../../target/types/cash_dispatch";
 import { PaymentTree, MerkleDistributorInfo, PaymentsImport, parsePaymentMap } from '../merkle-tree';
 import { PublicKey, Keypair } from '@solana/web3.js';
 import { BASE_PAYMENT_AMOUNT, FEES_WALLET_SECRET, NUM_SAMPLE_BALANCES, PY_USD_AUTH_SECRET, PY_USD_SECRET } from '../constants';
@@ -8,7 +8,7 @@ import { CivicConfig } from '../civic/types';
 
 export class TestEnvironment {
     provider!: anchor.AnchorProvider;
-    program!: anchor.Program<Distributor>;
+    program!: anchor.Program<CashDispatch>;
 
     pyUsdMint: PublicKey;
     pyUsdMintAuthorityKeypair: Keypair;

@@ -10,7 +10,7 @@ import { pauseResumeTests } from "./instructions/6-pause/pauseResumeTests";
 import { gatekeeperTests } from "./instructions/7-gatekeeper/gatekeeperTests";
 import { reclaimTests } from "./instructions/8-reclaim/reclaimTests";
 
-describe("The Distributor Program", () => {
+describe("The Cash Dispatch Program", () => {
   const testEnv = new TestEnvironment();
 
   before('Prepare Test Enviroment', async () => {

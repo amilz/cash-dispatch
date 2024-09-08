@@ -13,7 +13,7 @@ pub use state::*;
 declare_id!("D1STwmxtNRt9NWcZThPTCLZWzVsk7pPryWz3GjVgRtzo");
 
 #[program]
-pub mod distributor {
+pub mod cash_dispatch {
     use super::*;
 
     #[access_control(instructions::initialize::validate(&ctx, &params))]
