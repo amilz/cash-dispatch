@@ -99,6 +99,7 @@ export async function initializeTests(testEnv: TestEnvironment) {
             const wrongBatchId = "short";
             const wrongTreePda = getDistributionTreePDA({
                 distributorProgram: testEnv.program.programId,
+                authority: testEnv.authority.publicKey,
                 batchId: wrongBatchId
             });
             const wrongVault = getTokenVaultAddress({
@@ -122,6 +123,7 @@ export async function initializeTests(testEnv: TestEnvironment) {
             const wrongBatchId = "THIS_BATCH_ID_IS_WAY_TOO_LONG";
             const wrongTreePda = getDistributionTreePDA({
                 distributorProgram: testEnv.program.programId,
+                authority: testEnv.authority.publicKey,
                 batchId: wrongBatchId
             });
             const wrongVault = getTokenVaultAddress({

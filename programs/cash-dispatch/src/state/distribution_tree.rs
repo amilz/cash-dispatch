@@ -108,9 +108,10 @@ impl DistributionTree {
     }
 
     /// Returns the seeds used to sign for this Distribution Tree PDA
-    pub fn signer_seeds(&self) -> [&[u8]; 3] {
+    pub fn signer_seeds(&self) -> [&[u8]; 4] {
         [
             DISTRIBUTION_TREE_SEED.as_ref(),
+            self.authority.as_ref(),
             self.batch_id.as_ref(),
             std::slice::from_ref(&self.bump)
         ]

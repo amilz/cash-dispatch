@@ -21,7 +21,11 @@ pub struct Cancel<'info> {
         has_one = mint @ DistributionError::InvalidTokenMint,
         has_one = token_vault @ DistributionError::InvalidTokenVault,
         constraint = distribution_tree.status == DistributionStatus::Active @ DistributionError::DistributionNotActive,
-        seeds = [DISTRIBUTION_TREE_SEED.as_ref(), params.batch_id.as_bytes()],
+        seeds = [
+            DISTRIBUTION_TREE_SEED.as_ref(), 
+            distribution_tree.authority.as_ref(),
+            params.batch_id.as_bytes()
+        ],
         bump = distribution_tree.bump
     )]
     pub distribution_tree: Account<'info, DistributionTree>,

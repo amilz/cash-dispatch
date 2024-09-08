@@ -73,6 +73,7 @@ export class TestEnvironment {
 
         this.distributionTreePda = getDistributionTreePDA({
             distributorProgram: this.program.programId,
+            authority: this.authority.publicKey,
             batchId: this.distributionUniqueId
         });
         this.tokenVault = getTokenVaultAddress({

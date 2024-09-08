@@ -24,6 +24,7 @@ pub struct Initialize<'info> {
         space = 8 + DistributionTree::INIT_SPACE,
         seeds = [
             DISTRIBUTION_TREE_SEED.as_ref(),
+            authority.key().as_ref(),
             params.batch_id.as_bytes(),
         ],
         bump

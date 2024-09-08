@@ -20,6 +20,7 @@ pub struct Claim<'info> {
         mut,
         seeds = [
             DISTRIBUTION_TREE_SEED.as_ref(),
+            distribution_tree.authority.as_ref(),
             params.batch_id.as_bytes(),
         ],
         bump = distribution_tree.bump,

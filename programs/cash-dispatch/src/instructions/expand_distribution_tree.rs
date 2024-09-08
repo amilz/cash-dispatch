@@ -9,7 +9,11 @@ pub struct ExpandDistributionTree<'info> {
 
     #[account(
         mut,
-        seeds = [DISTRIBUTION_TREE_SEED.as_ref(), params.batch_id.as_bytes()],
+        seeds = [
+            DISTRIBUTION_TREE_SEED.as_ref(),
+            distribution_tree.authority.as_ref(),
+            params.batch_id.as_bytes()
+        ],
         bump = distribution_tree.bump,
         has_one = authority @ DistributionError::SignerNotAuthorized,
         // Add space for more u64's based on BITMAP_ARRAY_STEP 
