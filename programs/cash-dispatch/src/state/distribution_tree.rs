@@ -7,7 +7,7 @@ use crate::{error::DistributionError, utils::verify, BITMAP_ARRAY_STEP, CURRENT_
 pub struct DistributionTree {
     /// Bump seed.
     pub bump: u8,
-    /// Version of the airdrop
+    /// Version of the PDA
     pub version: u64,
     /// Admin wallet
     pub authority: Pubkey,
