@@ -1,6 +1,6 @@
-# Cash Dispatch
+# Dispatch
 
-Cash Dispatch is a powerful Solana-based tool designed for efficient and secure distribution of PYUSD to many recipients for applications such as:
+Dispatch is a powerful Solana-based tool designed for efficient and secure distribution of PYUSD to many recipients for applications such as:
 - Universal Basic Income (UBI)
 - Class Action Settlements
 - Rewards/Rebate Programs
@@ -77,12 +77,12 @@ Out of scope for this submission, but planned for future roadmap:
  distribution tree account with the following parameters:
 
 ### Tech Stack
-- [Anchor](anchor-lang.com): [Cash Dispatch Program](programs/cash-dispatch) for the on-chain creation and management of distribution trees
+- [Anchor](anchor-lang.com): [Dispatch Program](programs/cash-dispatch) for the on-chain creation and management of distribution trees
 - [TypeScript](https://www.typescriptlang.org/): [Program Test Suite](tests)
 - Optional User Verification: [Civc Identity.com On-chain Gateway](https://github.com/identity-com/on-chain-identity-gateway)
 
 ## Local Deployment
-The Cash Dispatch program is not yet deployed on any public Solana cluster. To test locally, you can use the following steps:
+The Dispatch program is not yet deployed on any public Solana cluster. To test locally, you can use the following steps:
 Note: for local testing, we are using a simulated PYUSD token, `PyuSdRak7SLogVeLcj8tgAk1JCJvHpfZ9R5keq25BkS`. 
 
 ### Prerequisites
@@ -120,7 +120,7 @@ For more detailed instructions on each operation, please refer to the [Documenta
 
 ## Architecture
 
-Cash Dispatch is built on the Solana blockchain and uses the Anchor framework. Key components include:
+Dispatch is built on the Solana blockchain and uses the Anchor framework. Key components include:
 
 - Distribution Tree PDA: Manages the state of each distribution.
 - Merkle Root: Ensures secure and efficient verification of claims.
@@ -131,7 +131,7 @@ Cash Dispatch is built on the Solana blockchain and uses the Anchor framework. K
 
 _[programs/cash-dispatch/src/state/distribution_tree.rs](programs/cash-dispatch/src/state/distribution_tree.rs)_
 
-The `DistributionTree` Account is the only stateful account in the Cash Dispatch program. It is responsible for managing the distribution of funds to recipients. The account includes:
+The `DistributionTree` Account is the only stateful account in the Dispatch program. It is responsible for managing the distribution of funds to recipients. The account includes:
 - **bump**: A bump seed used to derive the PDA for the DistributionTree.
 - **version**: A version number for the DistributionTree.
 - **authority**: The authority of the DistributionTree.
@@ -158,7 +158,7 @@ The Merkle Root is derived from the index, user public key, and amount to be dis
 
 ### Understanding the Recipients Distributed Bitmap
 
-The `recipients_distributed_bitmap` is a crucial element in our Cash Dispatch system that efficiently tracks which recipients have claimed their funds. Here's a visual representation to help understand how it works:
+The `recipients_distributed_bitmap` is a crucial element in our Dispatch system that efficiently tracks which recipients have claimed their funds. Here's a visual representation to help understand how it works:
 
 ```
 recipients_distributed_bitmap: [u64; N]
